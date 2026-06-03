@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事件處理</title>
+  <style>
+    :root { --bg:#0f1117; --surface:#1a202c; --border:#2d3748; --text:#e2e8f0; --muted:#a0aec0; --accent:#63b3ed; --green:#68d391; --yellow:#f6e05e; --red:#fc8181; }
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
+    h1 { color: var(--accent); }
+    h2 { color: var(--green); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-top: 32px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid var(--border); padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: var(--yellow); font-size: 0.9em; }
+    pre { background: #171923; padding: 10px; border-radius: 6px; color: var(--muted); font-size: 0.82em; overflow-x: auto; line-height: 1.6; }
+    button { background: #3182ce; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; margin: 3px; font-family: monospace; font-size: 0.9em; }
+    button:hover { background: #2b6cb0; }
+    .log { background: #171923; border: 1px solid var(--border); border-radius: 6px; padding: 10px; min-height: 60px; max-height: 180px; overflow-y: auto; font-size: 0.82em; }
+    .log-entry { padding: 2px 0; border-bottom: 1px solid #2d3748; }
+    .log-capture { color: #63b3ed; }
+    .log-bubble  { color: #68d391; }
+    .log-custom  { color: #9f7aea; }
+    .log-event   { color: #f6e05e; }
+    .demo-box { border: 2px solid var(--border); border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .demo-box:hover { border-color: var(--accent); }
+    input[type=text] { background: #2d3748; color: var(--text); border: 1px solid #4a5568; padding: 7px 10px; border-radius: 4px; font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<h1>事件處理</h1>
+<p class="comment">來源：js_raw.txt｜事件是瀏覽器與使用者互動的核心機制</p>
+
+<!-- ============================================================
+     事件冒泡 vs 捕獲
+============================================================ -->
+<h2>事件傳播：冒泡（Bubble）vs 捕獲（Capture）</h2>
+<div class="card">
+  <p class="comment">
+    addEventListener 的第三個參數（布林值）控制傳播方向：<br>
+    <code>false</code>（預設）= 冒泡（由內向外）&nbsp;|&nbsp; <code>true</code> = 捕獲（由外向內）
+  </p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div>
+      <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">點擊按鈕觀察傳播順序：</div>
+
+      <!-- 巢狀元素：body → outer → inner → button -->
+      <div id="ev-body" class="demo-box" style="background:#1a202c; border-color:#4a5568;">
+        BODY
+        <div id="ev-outer" class="demo-box" style="background:#1a2f44; border-color:#2b6cb0; margin:8px 0;">
+          OUTER DIV
+          <div id="ev-inner" class="demo-box" style="background:#1a3a1a; border-color:#276749; margin:8px 0;">
+            INNER DIV
+            <button id="ev-btn" style="margin:0; background:#9f7aea;">
+              點我（BUTTON）
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <button onclick="setMode('bubble')">全部冒泡（false）</button>
+        <button onclick="setMode('capture')">全部捕獲（true）</button>
+        <button onclick="setMode('mixed')">混合模式</button>
+        <button onclick="clearLog('prop-log')" style="background:#4a5568;">清除</button>
+      </div>
+      <div id="prop-log" class="log">（點選上方按鈕設定模式，再點 BUTTON）</div>
+    </div>
+  </div>
+
+  <pre style="margin-top:12px;">// 冒泡（預設）：button → inner → outer → body
+el.addEventListener('click', handler, false);
+
+// 捕獲：body → outer → inner → button
+el.addEventListener('click', handler, true);
+
+// 傳播順序公式：
+// 1.body(capture) → 2.outer(capture) → 3.inner(capture)
+// → 4.button(capture) → 5.button(bubble)
+// → 6.inner(bubble) → 7.outer(bubble) → 8.body(bubble)</pre>
+</div>
+
+<!-- ============================================================
+     stopPropagation / preventDefault
+============================================================ -->
+<h2>stopPropagation / preventDefault</h2>
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+    <!-- stopPropagation -->
+    <div>
+      <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">stopPropagation</div>
+      <div id="stop-outer" class="demo-box" style="background:#1a2f44;">
+        OUTER（點我會出現）
+        <button id="stop-btn" style="margin:8px 0 0; display:block;">
+          INNER BUTTON（阻止冒泡）
+        </button>
+      </div>
+      <div id="stop-log" class="log" style="margin-top:6px;"></div>
+    </div>
+
+    <!-- preventDefault -->
+    <div>
+      <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">preventDefault</div>
+      <div style="background:#1a2f44; border: 2px solid var(--border); border-radius:8px; padding:12px;">
+        <label style="display:block; color:var(--muted); font-size:0.85em; margin-bottom:4px;">
+          <input type="checkbox" id="prevent-check"> 阻止預設行為
+        </label>
+        <a href="https://google.com" id="prevent-link" target="_blank"
+           style="color:var(--accent); display:block; margin:8px 0;">
+          點我（原本會跳到 Google）
+        </a>
+        <form id="prevent-form" style="display:flex; gap:6px;">
+          <input type="text" placeholder="表單輸入" style="flex:1; padding:6px; border-radius:4px; background:#2d3748; color:var(--text); border:1px solid #4a5568;">
+          <button type="submit">送出</button>
+        </form>
+      </div>
+      <div id="prevent-log" class="log" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <pre style="margin-top:12px;">// 阻止事件繼續向上/下傳播
+event.stopPropagation();
+event.stopImmediatePropagation(); // 連同同元素其他 listener 也阻止
+
+// 阻止預設行為
+event.preventDefault();
+// 常見用途：
+// - 阻止 <a> 跳頁
+// - 阻止 <form> 送出並刷新頁面
+// - 阻止右鍵選單出現</pre>
+</div>
+
+<!-- ============================================================
+     Event Delegation（事件委派）
+============================================================ -->
+<h2>Event Delegation（事件委派）</h2>
+<div class="card">
+  <p class="comment">
+    不在每個子元素上綁定事件，改在父元素監聽，透過 event.target 判斷實際點擊目標。<br>
+    優點：動態新增的元素自動有事件；節省記憶體。
+  </p>
+
+  <div style="display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap;">
+    <button onclick="addDelegateItem()">➕ 動態新增項目</button>
+    <button onclick="clearLog('delegate-log')" style="background:#4a5568;">清除 log</button>
+  </div>
+
+  <!-- 只在 ul 上綁定一個 listener，子 li 的點擊都由父層處理 -->
+  <ul id="delegate-list" style="list-style:none; padding:0; margin:0 0 8px;">
+    <li data-action="delete" data-id="1" style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid var(--border); cursor:pointer;">
+      <span>項目 1</span> <span style="color:var(--red);">[刪除]</span>
+    </li>
+    <li data-action="edit" data-id="2" style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid var(--border); cursor:pointer;">
+      <span>項目 2</span> <span style="color:var(--accent);">[編輯]</span>
+    </li>
+    <li data-action="view" data-id="3" style="display:flex; justify-content:space-between; padding:8px; cursor:pointer;">
+      <span>項目 3</span> <span style="color:var(--green);">[查看]</span>
+    </li>
+  </ul>
+  <div id="delegate-log" class="log"></div>
+
+  <pre style="margin-top:10px;">// ✅ 事件委派：只在 ul 上綁定一次
+ul.addEventListener('click', (e) => {
+  const li = e.target.closest('li'); // 找到最近的 li 祖先
+  if (!li) return;
+  const action = li.dataset.action;
+  const id     = li.dataset.id;
+  console.log(`${action} item ${id}`);
+});
+
+// ❌ 避免這樣：每個 li 各綁一次（浪費記憶體，動態新增的 li 沒有事件）
+// document.querySelectorAll('li').forEach(li => {
+//   li.addEventListener('click', handler);
+// });</pre>
+</div>
+
+<!-- ============================================================
+     自訂事件（CustomEvent）
+============================================================ -->
+<h2>自訂事件（CustomEvent）</h2>
+<div class="card">
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+    <button onclick="fireCustomEvent('user:login', {user:'Alice', role:'admin'})">🔐 觸發 user:login</button>
+    <button onclick="fireCustomEvent('data:loaded', {count:42, source:'API'})">📦 觸發 data:loaded</button>
+    <button onclick="fireCustomEvent('error:occurred', {code:404, msg:'Not Found'})">❌ 觸發 error:occurred</button>
+  </div>
+  <div id="custom-log" class="log"></div>
+
+  <pre style="margin-top:10px;">// 建立並觸發自訂事件
+const event = new CustomEvent('user:login', {
+  detail: { user: 'Alice', role: 'admin' },  // 攜帶的資料
+  bubbles: true,     // 是否冒泡
+  cancelable: true,  // 是否可 preventDefault
+});
+document.dispatchEvent(event);
+
+// 監聽自訂事件
+document.addEventListener('user:login', (e) => {
+  console.log('使用者登入：', e.detail.user);
+});</pre>
+</div>
+
+<script>
+  // ==========================================
+  // 事件傳播（冒泡 / 捕獲）
+  // ==========================================
+  let listeners = [];
+
+  function addLog(logId, msg, cls) {
+    const log = document.getElementById(logId);
+    const div = document.createElement('div');
+    div.className = `log-entry ${cls}`;
+    div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    log.prepend(div);
+  }
+
+  function clearLog(id) {
+    document.getElementById(id).innerHTML = '';
+  }
+
+  function setMode(mode) {
+    // 移除舊的 listeners
+    listeners.forEach(({ el, fn, cap }) => el.removeEventListener('click', fn, cap));
+    listeners = [];
+    clearLog('prop-log');
+
+    const elements = [
+      { el: document.getElementById('ev-body'),  name: 'BODY' },
+      { el: document.getElementById('ev-outer'), name: 'OUTER' },
+      { el: document.getElementById('ev-inner'), name: 'INNER' },
+      { el: document.getElementById('ev-btn'),   name: 'BUTTON' },
+    ];
+
+    const modes = {
+      bubble:  elements.map(e => ({ ...e, cap: false })),
+      capture: elements.map(e => ({ ...e, cap: true })),
+      mixed: [
+        { ...elements[0], cap: true  }, // BODY capture
+        { ...elements[1], cap: true  }, // OUTER capture
+        { ...elements[2], cap: false }, // INNER bubble
+        { ...elements[3], cap: false }, // BUTTON bubble
+      ],
+    };
+
+    modes[mode].forEach(({ el, name, cap }) => {
+      const fn = (e) => {
+        const type = cap ? 'capture' : 'bubble';
+        addLog('prop-log', `${name} [${type}]`, cap ? 'log-capture' : 'log-bubble');
+      };
+      el.addEventListener('click', fn, cap);
+      listeners.push({ el, fn, cap });
+    });
+
+    addLog('prop-log', `模式：${mode}，點擊 BUTTON 觀察順序 ↑`, 'log-event');
+  }
+
+  setMode('bubble');
+
+  // ==========================================
+  // stopPropagation
+  // ==========================================
+  document.getElementById('stop-outer').addEventListener('click', () => {
+    addLog('stop-log', 'OUTER 收到點擊（冒泡上來）', 'log-bubble');
+  });
+  document.getElementById('stop-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    addLog('stop-log', 'BUTTON：stopPropagation() → OUTER 不會收到', 'log-capture');
+  });
+
+  // ==========================================
+  // preventDefault
+  // ==========================================
+  document.getElementById('prevent-link').addEventListener('click', (e) => {
+    if (document.getElementById('prevent-check').checked) {
+      e.preventDefault();
+      addLog('prevent-log', '連結：preventDefault() → 不跳頁', 'log-capture');
+    } else {
+      addLog('prevent-log', '連結：正常跳頁（新分頁）', 'log-bubble');
+    }
+  });
+  document.getElementById('prevent-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    addLog('prevent-log', '表單：preventDefault() → 不刷新頁面', 'log-capture');
+  });
+
+  // ==========================================
+  // Event Delegation（委派）
+  // ==========================================
+  let delegateCount = 4;
+  const delegateList = document.getElementById('delegate-list');
+
+  delegateList.addEventListener('click', (e) => {
+    const li = e.target.closest('li[data-action]');
+    if (!li) return;
+    const action = li.dataset.action;
+    const id = li.dataset.id;
+    const colors = { delete: 'log-event', edit: 'log-capture', view: 'log-bubble' };
+    addLog('delegate-log', `${action.toUpperCase()} → item id=${id}（e.target.closest('li')）`, colors[action] || 'log-event');
+  });
+
+  function addDelegateItem() {
+    const actions = ['delete', 'edit', 'view'];
+    const action = actions[delegateCount % 3];
+    const colors = { delete: 'var(--red)', edit: 'var(--accent)', view: 'var(--green)' };
+    const li = document.createElement('li');
+    li.dataset.action = action;
+    li.dataset.id = delegateCount;
+    li.style.cssText = 'display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #2d3748; cursor:pointer;';
+    li.innerHTML = `<span>項目 ${delegateCount}（動態新增）</span><span style="color:${colors[action]};">[${action}]</span>`;
+    delegateList.appendChild(li);
+    addLog('delegate-log', `新增項目 ${delegateCount}（自動有事件，不需重新綁定）`, 'log-custom');
+    delegateCount++;
+  }
+
+  // ==========================================
+  // 自訂事件（CustomEvent）
+  // ==========================================
+  ['user:login', 'data:loaded', 'error:occurred'].forEach(type => {
+    document.addEventListener(type, (e) => {
+      addLog('custom-log', `收到 "${e.type}"：${JSON.stringify(e.detail)}`, 'log-custom');
+    });
+  });
+
+  function fireCustomEvent(type, detail) {
+    const event = new CustomEvent(type, { detail, bubbles: true, cancelable: true });
+    document.dispatchEvent(event);
+    addLog('custom-log', `→ dispatchEvent("${type}")`, 'log-event');
+  }
+</script>
+
+</body>
+</html>

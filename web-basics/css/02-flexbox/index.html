@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSS Flexbox</title>
+  <style>
+    :root { --bg:#0f1117; --surface:#1a202c; --border:#2d3748; --text:#e2e8f0; --muted:#a0aec0; --accent:#63b3ed; --green:#68d391; --yellow:#f6e05e; }
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 960px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
+    h1 { color: var(--accent); }
+    h2 { color: var(--green); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-top: 32px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid var(--border); padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: var(--yellow); font-size: 0.9em; }
+    pre { background: #171923; padding: 10px; border-radius: 6px; color: var(--muted); font-size: 0.82em; overflow-x: auto; }
+    select { background: #2d3748; color: var(--text); border: 1px solid #4a5568; padding: 5px 8px; border-radius: 4px; font-family: monospace; margin: 4px; }
+    label { color: var(--muted); font-size: 0.85em; }
+    .ctrl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 8px; }
+
+    /* Flex 示範容器 */
+    .flex-demo {
+      display: flex;
+      background: #171923;
+      border: 2px dashed #4a5568;
+      border-radius: 6px;
+      padding: 8px;
+      min-height: 100px;
+      gap: 8px;
+      transition: all 0.3s;
+    }
+    .flex-item {
+      background: #1a365d;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 12px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      text-align: center;
+      min-width: 50px;
+      transition: all 0.3s;
+    }
+    .flex-item:nth-child(2) { background: #1a4731; border-color: var(--green); color: var(--green); }
+    .flex-item:nth-child(3) { background: #2d1b69; border-color: #9f7aea; color: #c4b5fd; }
+    .flex-item:nth-child(4) { background: #744210; border-color: var(--yellow); color: var(--yellow); }
+    .flex-item:nth-child(5) { background: #742a2a; border-color: #fc8181; color: #fc8181; }
+
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9em; }
+    th { color: var(--muted); font-weight: normal; background: #171923; }
+  </style>
+</head>
+<body>
+
+<h1>CSS Flexbox</h1>
+<p class="comment">來源：css_raw.txt｜Flexbox 是一維彈性排版，處理「一排」或「一列」的元素分佈</p>
+
+<!-- ============================================================
+     互動式 Flexbox 沙盒
+============================================================ -->
+<h2>互動式 Flexbox 沙盒</h2>
+<div class="card">
+  <p class="comment">調整以下屬性，即時觀察容器（Container）和項目（Item）的變化</p>
+
+  <!-- 容器屬性控制 -->
+  <div style="background:#171923; padding:12px; border-radius:6px; margin-bottom:12px;">
+    <div style="color:var(--accent); font-weight:bold; margin-bottom:8px;">🏠 容器屬性（Container）</div>
+
+    <div class="ctrl-row">
+      <label>flex-direction:</label>
+      <select id="ctrl-direction" onchange="updateFlex()">
+        <option value="row">row（→ 橫排）</option>
+        <option value="row-reverse">row-reverse（← 反橫排）</option>
+        <option value="column">column（↓ 直排）</option>
+        <option value="column-reverse">column-reverse（↑ 反直排）</option>
+      </select>
+    </div>
+
+    <div class="ctrl-row">
+      <label>justify-content（主軸）:</label>
+      <select id="ctrl-justify" onchange="updateFlex()">
+        <option value="flex-start">flex-start（靠前）</option>
+        <option value="flex-end">flex-end（靠後）</option>
+        <option value="center">center（置中）</option>
+        <option value="space-between">space-between（兩端）</option>
+        <option value="space-around">space-around（等距含邊）</option>
+        <option value="space-evenly">space-evenly（完全等距）</option>
+      </select>
+    </div>
+
+    <div class="ctrl-row">
+      <label>align-items（交叉軸）:</label>
+      <select id="ctrl-align" onchange="updateFlex()">
+        <option value="stretch">stretch（填滿）</option>
+        <option value="flex-start">flex-start（靠上/左）</option>
+        <option value="flex-end">flex-end（靠下/右）</option>
+        <option value="center">center（置中）</option>
+        <option value="baseline">baseline（基線對齊）</option>
+      </select>
+    </div>
+
+    <div class="ctrl-row">
+      <label>flex-wrap:</label>
+      <select id="ctrl-wrap" onchange="updateFlex()">
+        <option value="nowrap">nowrap（不換行）</option>
+        <option value="wrap">wrap（換行）</option>
+        <option value="wrap-reverse">wrap-reverse（反向換行）</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Flex 示範區 -->
+  <div id="flex-container" class="flex-demo" style="min-height:120px;">
+    <div class="flex-item" id="fi-1">Item 1</div>
+    <div class="flex-item" id="fi-2" style="font-size:1.2em; padding:20px 8px;">Item 2<br><small>（較高）</small></div>
+    <div class="flex-item" id="fi-3">Item 3</div>
+    <div class="flex-item" id="fi-4">Item 4</div>
+    <div class="flex-item" id="fi-5">Item 5</div>
+  </div>
+
+  <!-- 產生的 CSS 程式碼 -->
+  <pre id="flex-code" style="margin-top:12px;"></pre>
+</div>
+
+<!-- ============================================================
+     flex-grow / flex-shrink / flex-basis
+============================================================ -->
+<h2>flex-grow / flex-shrink / flex-basis</h2>
+<div class="card">
+  <table>
+    <tr><th>屬性</th><th>說明</th><th>預設值</th></tr>
+    <tr>
+      <td><code>flex-grow</code></td>
+      <td>剩餘空間的分配比例。0 = 不擴張；1 = 平均分配</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td><code>flex-shrink</code></td>
+      <td>空間不足時的縮小比例。0 = 不縮小；1 = 正常縮小</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td><code>flex-basis</code></td>
+      <td>排列前的初始尺寸（主軸方向）</td>
+      <td>auto</td>
+    </tr>
+  </table>
+
+  <div style="margin-top:12px;">
+    <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">flex 簡寫示範（grow / shrink / basis）</div>
+    <div style="display:flex; gap:6px; background:#171923; padding:8px; border-radius:6px;">
+      <div style="flex:1; background:#1a365d; border:1px solid var(--accent); padding:10px; text-align:center; font-size:0.8em; color:var(--accent);">
+        flex: 1<br><small>(1 1 0)</small>
+      </div>
+      <div style="flex:2; background:#1a4731; border:1px solid var(--green); padding:10px; text-align:center; font-size:0.8em; color:var(--green);">
+        flex: 2<br><small>（比左邊大 2 倍）</small>
+      </div>
+      <div style="flex:1; background:#2d1b69; border:1px solid #9f7aea; padding:10px; text-align:center; font-size:0.8em; color:#c4b5fd;">
+        flex: 1<br><small>(1 1 0)</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- align-self 示範 -->
+  <div style="margin-top:12px;">
+    <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">align-self：單一項目的交叉軸對齊</div>
+    <div style="display:flex; align-items:flex-start; gap:6px; background:#171923; padding:8px; border-radius:6px; height:100px;">
+      <div style="flex:1; background:#2d3748; padding:10px; text-align:center; font-size:0.8em; align-self:flex-start;">flex-start</div>
+      <div style="flex:1; background:#1a4731; border:1px solid var(--green); padding:10px; text-align:center; font-size:0.8em; color:var(--green); align-self:center;">center<br><small>(align-self)</small></div>
+      <div style="flex:1; background:#2d3748; padding:10px; text-align:center; font-size:0.8em; align-self:flex-end;">flex-end</div>
+      <div style="flex:1; background:#1a365d; border:1px solid var(--accent); padding:10px; text-align:center; font-size:0.8em; color:var(--accent); align-self:stretch;">stretch</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     常見 Flexbox 版型
+============================================================ -->
+<h2>常見 Flexbox 版型</h2>
+<div class="card">
+
+  <!-- 導覽列 -->
+  <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">① 導覽列（Logo 左，連結右）</div>
+  <nav style="display:flex; justify-content:space-between; align-items:center; background:#1a365d; padding:10px 16px; border-radius:6px; margin-bottom:12px;">
+    <strong style="color:var(--accent);">🌐 Logo</strong>
+    <div style="display:flex; gap:16px;">
+      <a href="#" style="color:var(--text); text-decoration:none; font-size:0.85em;">首頁</a>
+      <a href="#" style="color:var(--text); text-decoration:none; font-size:0.85em;">文章</a>
+      <a href="#" style="color:var(--text); text-decoration:none; font-size:0.85em;">關於</a>
+    </div>
+  </nav>
+  <pre style="margin-bottom:16px;">nav {
+  display: flex;
+  justify-content: space-between;  /* Logo 左，連結群組右 */
+  align-items: center;             /* 垂直置中 */
+}</pre>
+
+  <!-- 卡片等距排列 -->
+  <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">② 卡片等距排列 + 換行</div>
+  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+    <div style="flex:1; min-width:120px; background:#1a202c; border:1px solid var(--border); padding:12px; border-radius:6px; text-align:center; font-size:0.8em;">卡片 1</div>
+    <div style="flex:1; min-width:120px; background:#1a202c; border:1px solid var(--border); padding:12px; border-radius:6px; text-align:center; font-size:0.8em;">卡片 2</div>
+    <div style="flex:1; min-width:120px; background:#1a202c; border:1px solid var(--border); padding:12px; border-radius:6px; text-align:center; font-size:0.8em;">卡片 3</div>
+  </div>
+  <pre style="margin-bottom:16px;">.card-container {
+  display: flex;
+  flex-wrap: wrap;   /* 超出時換行 */
+  gap: 8px;
+}
+.card {
+  flex: 1;           /* 平均分配空間 */
+  min-width: 120px;  /* 防止壓縮過小 */
+}</pre>
+
+  <!-- 垂直置中 -->
+  <div style="color:var(--muted); font-size:0.85em; margin-bottom:6px;">③ 水平+垂直置中（最常用）</div>
+  <div style="display:flex; align-items:center; justify-content:center; height:80px; background:#171923; border-radius:6px; margin-bottom:8px;">
+    <div style="background:#1a4731; border:1px solid var(--green); padding:10px 20px; border-radius:4px; color:var(--green); font-size:0.9em;">完全置中</div>
+  </div>
+  <pre>.container {
+  display: flex;
+  align-items: center;      /* 交叉軸置中（垂直） */
+  justify-content: center;  /* 主軸置中（水平） */
+}</pre>
+</div>
+
+<script>
+  function updateFlex() {
+    const direction = document.getElementById('ctrl-direction').value;
+    const justify   = document.getElementById('ctrl-justify').value;
+    const align     = document.getElementById('ctrl-align').value;
+    const wrap      = document.getElementById('ctrl-wrap').value;
+
+    const container = document.getElementById('flex-container');
+    container.style.flexDirection    = direction;
+    container.style.justifyContent   = justify;
+    container.style.alignItems       = align;
+    container.style.flexWrap         = wrap;
+
+    const isColumn = direction.startsWith('column');
+    container.style.minHeight = isColumn ? '240px' : '120px';
+
+    document.getElementById('flex-code').textContent =
+`.container {
+  display: flex;
+  flex-direction: ${direction};
+  justify-content: ${justify};
+  align-items: ${align};
+  flex-wrap: ${wrap};
+  gap: 8px;
+}`;
+  }
+  updateFlex();
+</script>
+
+</body>
+</html>

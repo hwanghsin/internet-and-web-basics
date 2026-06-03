@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<!--
+  ==========================================
+  網路概念：IP 定址（IP Addressing）
+  OSI 層：L3 網路層（Network Layer）
+  說明：本頁展示 IP 位址相關概念。
+        每台設備的 IP 由 ISP（網路服務提供商）分配，
+        是 L3 網路層的核心識別標誌。
+  ==========================================
+-->
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <!--
+    網路概念：Content-Type / Charset
+    OSI 層：L6 展示層（Presentation Layer）
+    說明：charset=UTF-8 是展示層的工作，
+          確保從網路收到的二進位資料被正確解讀為中文字元。
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IP 定址 Demo</title>
+  <style>
+    body { font-family: monospace; max-width: 800px; margin: 0 auto; padding: 20px; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 8px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .label { color: #a0aec0; font-size: 0.85em; }
+    .value { color: #f6e05e; font-size: 1.1em; font-weight: bold; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-left: 8px; }
+    .private { background: #2d6a4f; color: #b7e4c7; }
+    .public { background: #4a1942; color: #e9c46a; }
+    .loopback { background: #1a4a6b; color: #90e0ef; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+    th { color: #a0aec0; font-weight: normal; }
+    button { background: #3182ce; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 4px; }
+    button:hover { background: #2b6cb0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    .dns-result { color: #68d391; }
+    .error { color: #fc8181; }
+  </style>
+</head>
+<body>
+
+<h1>IP 定址（IP Addressing）Demo</h1>
+
+<!--
+  網路概念：網路型態（LAN / MAN / WAN）
+  OSI 層：L1-L2 實體層 / 資料連結層
+  說明：不同規模的網路對應 OSI 不同層的硬體設備。
+        LAN 用交換器（L2），WAN 透過路由器（L3）互連。
+-->
+<h2>網路型態</h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>類型</th><th>範圍</th><th>用途</th><th>關鍵硬體（OSI）</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>LAN</strong></td>
+        <td>辦公室、家庭</td>
+        <td>共用印表機、區域檔案</td>
+        <td>交換器 Switch（L2）</td>
+      </tr>
+      <tr>
+        <td><strong>MAN</strong></td>
+        <td>城市、學區</td>
+        <td>大學、醫院互連</td>
+        <td>路由器 Router（L3）</td>
+      </tr>
+      <tr>
+        <td><strong>WAN</strong></td>
+        <td>跨國、全球</td>
+        <td>透過海底光纜連接世界</td>
+        <td>路由器 + ISP（L3）</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!--
+  網路概念：公有 IP vs 私有 IP
+  OSI 層：L3 網路層
+  說明：你在開發時用的 localhost(127.0.0.1) 是 Loopback，
+        192.168.x.x 是私有 IP（由路由器的 DHCP 分配），
+        對外的公有 IP 由 ISP 分配，全球唯一。
+-->
+<h2>IP 位址類型識別</h2>
+<div class="card">
+  <p class="comment">輸入一個 IP 位址，判斷它的類型</p>
+  <input id="ip-input" type="text" value="192.168.1.1"
+         style="background:#2d3748; color:#e2e8f0; border:1px solid #4a5568; padding:8px; border-radius:4px; width:200px;">
+  <button onclick="checkIP()">判斷類型</button>
+  <div id="ip-result" class="card" style="margin-top:12px;"></div>
+</div>
+
+<!--
+  網路概念：IPv4 vs IPv6
+  OSI 層：L3 網路層
+  說明：IPv4 只有 43 億個位址，已告枯竭。
+        IPv6 提供 2^128 個位址（340 澗），
+        每粒沙子都能有自己的 IP。
+-->
+<h2>IPv4 vs IPv6</h2>
+<div class="card">
+  <table>
+    <tr><th>特性</th><th>IPv4</th><th>IPv6</th></tr>
+    <tr>
+      <td>格式</td>
+      <td>192.168.1.1（十進位）</td>
+      <td>2001:0db8::1（十六進位）</td>
+    </tr>
+    <tr>
+      <td>位址數量</td>
+      <td>~43 億（2³²）</td>
+      <td>340 澗（2¹²⁸）趨近無限</td>
+    </tr>
+    <tr>
+      <td>安全性</td>
+      <td>選配（需外掛 VPN）</td>
+      <td>內建 IPsec</td>
+    </tr>
+    <tr>
+      <td>設定</td>
+      <td>手動或 DHCP</td>
+      <td>自動設定（SLAAC）</td>
+    </tr>
+  </table>
+</div>
+
+<!--
+  網路概念：NAT（網路位址轉換）
+  OSI 層：L3 網路層
+  說明：路由器透過 NAT 讓多台私有 IP 設備共用同一個公有 IP，
+        這就是為什麼家裡 5 台設備都能上網，
+        但在外面看起來只有一個 IP 位址。
+-->
+<h2>NAT 模擬（私有 IP → 公有 IP）</h2>
+<div class="card">
+  <p class="comment">點擊模擬家中設備發送請求時，路由器如何做 NAT 轉換</p>
+  <button onclick="simulateNAT('192.168.1.10', '手機')">手機 (192.168.1.10)</button>
+  <button onclick="simulateNAT('192.168.1.20', '筆電')">筆電 (192.168.1.20)</button>
+  <button onclick="simulateNAT('192.168.1.30', '平板')">平板 (192.168.1.30)</button>
+  <div id="nat-result" style="margin-top:12px;"></div>
+</div>
+
+<!--
+  網路概念：DHCP 租約機制
+  OSI 層：L3 網路層 / L7 應用層（DHCP 協定）
+  說明：DHCP 讓設備連上 Wi-Fi 就自動取得 IP，
+        採 DORA 四步驟：Discover → Offer → Request → Acknowledge。
+-->
+<h2>DHCP 租約模擬（DORA 流程）</h2>
+<div class="card">
+  <button onclick="simulateDHCP()">模擬設備連上 Wi-Fi</button>
+  <div id="dhcp-steps" style="margin-top:12px;"></div>
+</div>
+
+<script>
+  // ==========================================
+  // 網路概念：IP 類型判斷（L3 網路層）
+  // 說明：這個函式模擬路由器如何區分私有/公有 IP，
+  //       決定封包是在 LAN 內傳輸還是需要路由到 WAN。
+  // ==========================================
+  function checkIP() {
+    const ip = document.getElementById('ip-input').value.trim();
+    const parts = ip.split('.').map(Number);
+    let type = '', desc = '', tag = '';
+
+    if (ip === '127.0.0.1' || ip === '::1') {
+      type = 'Loopback（迴路位址）';
+      tag = 'loopback';
+      desc = '永遠指向自己。不走網路，不需要連線。開發時 localhost 就是這個。';
+    } else if (parts[0] === 10 ||
+               (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+               (parts[0] === 192 && parts[1] === 168)) {
+      type = '私有 IP（Private IP）';
+      tag = 'private';
+      desc = '只在 LAN 內使用。家裡/公司的設備用這類 IP，外部無法直接連線。路由器用 NAT 轉換成公有 IP 對外溝通。';
+    } else if (ip.startsWith('169.254.')) {
+      type = '⚠️ APIPA（自動私有 IP）';
+      tag = 'public';
+      desc = 'DHCP 失敗時系統自動分配的備用 IP。出現這個代表你的設備無法從路由器取得 IP，無法上網。';
+    } else {
+      type = '公有 IP（Public IP）';
+      tag = 'public';
+      desc = '全球唯一，由 ISP 分配給你的路由器。這是你在網際網路上的真實身份。';
+    }
+
+    document.getElementById('ip-result').innerHTML = `
+      <div class="label">輸入的 IP</div>
+      <div class="value">${ip} <span class="tag ${tag}">${type}</span></div>
+      <div style="margin-top:8px; color:#a0aec0;">${desc}</div>
+    `;
+  }
+
+  // ==========================================
+  // 網路概念：NAT 轉換模擬
+  // OSI 層：L3 網路層
+  // 說明：路由器記錄內部私有 IP 與連接埠的對應表，
+  //       讓多台設備共用一個公有 IP 對外通訊。
+  // ==========================================
+  const publicIP = '61.57.xxx.xxx'; // 模擬公有 IP
+  function simulateNAT(privateIP, device) {
+    const port = Math.floor(50000 + Math.random() * 10000);
+    document.getElementById('nat-result').innerHTML = `
+      <div class="card">
+        <div class="label">裝置</div>
+        <div class="value">${device}</div>
+        <br>
+        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div>
+            <div class="label">LAN（私有）</div>
+            <div style="color:#68d391;">${privateIP}:${port}</div>
+          </div>
+          <div style="color:#a0aec0; font-size:1.5em;">→</div>
+          <div style="color:#a0aec0;">路由器 NAT 轉換</div>
+          <div style="color:#a0aec0; font-size:1.5em;">→</div>
+          <div>
+            <div class="label">WAN（公有）</div>
+            <div style="color:#f6e05e;">${publicIP}:${port}</div>
+          </div>
+        </div>
+        <div class="comment" style="margin-top:12px;">
+          路由器的 NAT 表記錄：${privateIP}:${port} ↔ ${publicIP}:${port}<br>
+          回應的封包到達後，路由器查表把它轉回 ${device} 的私有 IP。
+        </div>
+      </div>
+    `;
+  }
+
+  // ==========================================
+  // 網路概念：DHCP DORA 四步驟
+  // OSI 層：L7 應用層（DHCP 協定）+ L3 網路層（IP 分配）
+  // 說明：設備連上 Wi-Fi 後用廣播方式找 DHCP 伺服器（通常是路由器），
+  //       完成 DORA 流程後取得 IP、子網路遮罩、預設閘道等資訊。
+  // ==========================================
+  function simulateDHCP() {
+    const steps = [
+      { step: 'Discover', who: '設備', msg: '（廣播）「我連上了！有誰可以給我一個 IP？」', color: '#68d391' },
+      { step: 'Offer',    who: '路由器', msg: '「我這裡有 192.168.1.50，租期 24 小時，你要嗎？」', color: '#63b3ed' },
+      { step: 'Request',  who: '設備', msg: '「好，我要 192.168.1.50！」', color: '#68d391' },
+      { step: 'Acknowledge', who: '路由器', msg: '「成交！192.168.1.50 租給你到明天同時。子網路遮罩 255.255.255.0，閘道 192.168.1.1。」', color: '#63b3ed' },
+    ];
+
+    const container = document.getElementById('dhcp-steps');
+    container.innerHTML = '';
+
+    steps.forEach((s, i) => {
+      setTimeout(() => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.borderLeft = `4px solid ${s.color}`;
+        div.innerHTML = `
+          <span style="color:${s.color}; font-weight:bold;">${s.step}</span>
+          &nbsp;<span class="label">${s.who}</span><br>
+          <span style="color:#a0aec0;">${s.msg}</span>
+        `;
+        container.appendChild(div);
+      }, i * 800);
+    });
+  }
+
+  // 初始執行
+  checkIP();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOM 操作</title>
+  <style>
+    :root { --bg:#0f1117; --surface:#1a202c; --border:#2d3748; --text:#e2e8f0; --muted:#a0aec0; --accent:#63b3ed; --green:#68d391; --yellow:#f6e05e; --red:#fc8181; }
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
+    h1 { color: var(--accent); }
+    h2 { color: var(--green); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-top: 32px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid var(--border); padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: var(--yellow); font-size: 0.9em; }
+    pre { background: #171923; padding: 10px; border-radius: 6px; color: var(--muted); font-size: 0.82em; overflow-x: auto; line-height: 1.6; }
+    button { background: #3182ce; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; margin: 3px; font-family: monospace; font-size: 0.9em; }
+    button:hover { background: #2b6cb0; }
+    button.danger { background: #742a2a; }
+    button.danger:hover { background: #9b2c2c; }
+    button.success { background: #276749; }
+    button.success:hover { background: #2f855a; }
+    input[type=text] { background: #2d3748; color: var(--text); border: 1px solid #4a5568; padding: 7px 10px; border-radius: 4px; font-family: monospace; width: 200px; }
+    .demo-area { background: #171923; border: 1px dashed #4a5568; border-radius: 6px; padding: 12px; min-height: 60px; margin: 8px 0; }
+    .highlight { background: #2d1b69 !important; border-color: #9f7aea !important; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9em; }
+    th { color: var(--muted); font-weight: normal; background: #171923; }
+  </style>
+</head>
+<body>
+
+<h1>DOM 操作</h1>
+<p class="comment">來源：js_raw.txt｜Document Object Model — 把 HTML 文件當作「樹狀結構」來操作</p>
+
+<!-- ============================================================
+     DOM 查詢
+============================================================ -->
+<h2>DOM 查詢方法</h2>
+<div class="card">
+  <table>
+    <tr><th>方法</th><th>回傳</th><th>說明</th></tr>
+    <tr><td><code>getElementById('id')</code></td><td>單一元素</td><td>最快，用 id 唯一定位</td></tr>
+    <tr><td><code>querySelector('css')</code></td><td>第一個符合</td><td>接受任何 CSS 選擇器</td></tr>
+    <tr><td><code>querySelectorAll('css')</code></td><td>NodeList</td><td>所有符合元素（需用 forEach 或轉 Array）</td></tr>
+    <tr><td><code>getElementsByClassName('c')</code></td><td>HTMLCollection</td><td>即時更新（live）</td></tr>
+  </table>
+  <div style="margin-top:12px;">
+    <button onclick="demoQuery()">▶ 執行查詢示範</button>
+    <pre id="query-result" style="margin-top:8px;">（點擊查看結果）</pre>
+  </div>
+
+  <!-- 查詢目標元素 -->
+  <div class="demo-area" id="query-target">
+    <div id="item-one" class="list-item" data-value="42">第一個 div（id="item-one"）</div>
+    <div class="list-item" data-value="99">第二個 div（class="list-item"）</div>
+    <p class="list-item">段落（class="list-item"）</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     DOM 新增 / 修改 / 刪除
+============================================================ -->
+<h2>新增 / 修改 / 刪除節點</h2>
+<div class="card">
+  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+    <input type="text" id="new-item-text" placeholder="輸入內容..." value="新項目">
+    <button onclick="addItem()">➕ appendChild</button>
+    <button onclick="insertFirst()">⬆ insertBefore（第一個）</button>
+    <button onclick="removeLastItem()" class="danger">🗑 removeChild（最後）</button>
+    <button onclick="replaceFirst()" class="success">✏ replaceChild（替換第一個）</button>
+    <button onclick="clearList()" class="danger">❌ 清空列表</button>
+  </div>
+
+  <!-- 動態列表 -->
+  <ul id="dynamic-list" class="demo-area" style="list-style:none; margin:0; padding:8px;">
+    <li style="padding:6px; border-bottom:1px solid #2d3748;">項目 A</li>
+    <li style="padding:6px; border-bottom:1px solid #2d3748;">項目 B</li>
+    <li style="padding:6px;">項目 C</li>
+  </ul>
+
+  <pre style="margin-top:12px;">// 新增節點
+const li = document.createElement('li');
+li.textContent = '新項目';
+li.style.padding = '6px';
+list.appendChild(li);                    // 加到最後
+
+// 插入到特定位置
+list.insertBefore(li, list.firstChild);  // 插到第一個
+
+// 替換節點
+list.replaceChild(newNode, oldNode);
+
+// 刪除節點
+list.removeChild(list.lastChild);
+
+// 修改屬性
+el.textContent = '新內容';
+el.classList.add('active');
+el.setAttribute('data-id', '123');</pre>
+</div>
+
+<!-- ============================================================
+     classList 操作
+============================================================ -->
+<h2>classList 操作</h2>
+<div class="card">
+  <div id="class-target" class="demo-area" style="color:var(--muted); transition:all 0.3s;">
+    這個 div 的 class 可以被動態修改
+  </div>
+  <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;">
+    <button onclick="clsOp('add','highlight')">add('highlight')</button>
+    <button onclick="clsOp('remove','highlight')" class="danger">remove('highlight')</button>
+    <button onclick="clsOp('toggle','highlight')">toggle('highlight')</button>
+    <button onclick="checkCls()">contains('highlight')?</button>
+  </div>
+  <div id="cls-result" style="margin-top:8px; color:var(--green); font-size:0.9em;"></div>
+  <pre style="margin-top:10px;">el.classList.add('active')       // 加上 class
+el.classList.remove('active')    // 移除 class
+el.classList.toggle('active')    // 有就移除，沒有就加上
+el.classList.contains('active')  // 檢查是否包含（回傳 boolean）
+el.classList.replace('old','new')// 替換 class 名稱</pre>
+</div>
+
+<!-- ============================================================
+     innerHTML vs textContent vs innerText
+============================================================ -->
+<h2>innerHTML vs textContent</h2>
+<div class="card">
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+    <button onclick="setContent('html')">innerHTML（解析 HTML）</button>
+    <button onclick="setContent('text')">textContent（純文字）</button>
+    <button onclick="setContent('xss')" class="danger">innerHTML 的 XSS 風險</button>
+  </div>
+  <div id="content-target" class="demo-area" style="min-height:50px;"></div>
+  <pre id="content-code" style="margin-top:8px;"></pre>
+
+  <div class="comment" style="margin-top:8px;">
+    ⚠️ 永遠不要把使用者輸入直接塞進 innerHTML！使用 textContent 或先做 HTML escape。
+  </div>
+</div>
+
+<!-- ============================================================
+     節點屬性操作
+============================================================ -->
+<h2>節點屬性操作</h2>
+<div class="card">
+  <div id="attr-target" class="demo-area"
+       data-status="pending" title="這是 title 屬性"
+       style="color:var(--yellow);">
+    滑鼠移到這裡看 title；點擊改變 data-status
+  </div>
+  <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+    <button onclick="changeAttr()">改變 data-status</button>
+    <button onclick="readAttrs()">讀取所有屬性</button>
+    <button onclick="changeStyle()">修改 style</button>
+  </div>
+  <pre id="attr-result" style="margin-top:8px;">（點擊按鈕查看）</pre>
+
+  <pre style="margin-top:10px;">// 屬性操作
+el.getAttribute('data-status')        // 讀取屬性
+el.setAttribute('data-status','done') // 設定屬性
+el.removeAttribute('disabled')        // 移除屬性
+el.hasAttribute('hidden')             // 檢查是否有屬性
+
+// dataset（data-* 屬性的快捷）
+el.dataset.status  // 等於 getAttribute('data-status')
+
+// 直接改 style
+el.style.color = '#68d391';
+el.style.fontSize = '1.2em';</pre>
+</div>
+
+<script>
+  // ==========================================
+  // DOM 查詢示範
+  // ==========================================
+  function demoQuery() {
+    const byId    = document.getElementById('item-one');
+    const byQuery = document.querySelector('.list-item');
+    const byAll   = document.querySelectorAll('.list-item');
+
+    document.getElementById('query-result').textContent =
+`getElementById('item-one')
+  → tagName: "${byId.tagName}", textContent: "${byId.textContent.trim()}"
+  → dataset.value: "${byId.dataset.value}"
+
+querySelector('.list-item')
+  → 第一個符合: "${byQuery.textContent.trim()}"
+
+querySelectorAll('.list-item')
+  → 找到 ${byAll.length} 個元素
+  → [0]: "${byAll[0].textContent.trim()}"
+  → [1]: "${byAll[1].textContent.trim()}"
+  → [2]: "${byAll[2].textContent.trim()}"`;
+  }
+
+  // ==========================================
+  // 新增 / 修改 / 刪除節點
+  // ==========================================
+  function makeListItem(text) {
+    const li = document.createElement('li');
+    li.textContent = text;
+    li.style.cssText = 'padding:6px; border-bottom:1px solid #2d3748; transition:background 0.3s;';
+    li.style.background = '#1a365d';
+    setTimeout(() => li.style.background = '', 500);
+    return li;
+  }
+
+  function addItem() {
+    const text = document.getElementById('new-item-text').value || '新項目';
+    const list = document.getElementById('dynamic-list');
+    list.appendChild(makeListItem(text));
+  }
+
+  function insertFirst() {
+    const text = document.getElementById('new-item-text').value || '插入到最前';
+    const list = document.getElementById('dynamic-list');
+    list.insertBefore(makeListItem(text), list.firstChild);
+  }
+
+  function removeLastItem() {
+    const list = document.getElementById('dynamic-list');
+    if (list.lastChild) list.removeChild(list.lastChild);
+  }
+
+  function replaceFirst() {
+    const list = document.getElementById('dynamic-list');
+    if (!list.firstChild) return;
+    const newItem = makeListItem('✅ 已替換（replaceChild）');
+    list.replaceChild(newItem, list.firstChild);
+  }
+
+  function clearList() {
+    const list = document.getElementById('dynamic-list');
+    while (list.firstChild) list.removeChild(list.firstChild);
+  }
+
+  // ==========================================
+  // classList 操作
+  // ==========================================
+  function clsOp(op, cls) {
+    const el = document.getElementById('class-target');
+    el.classList[op](cls);
+    document.getElementById('cls-result').textContent =
+      `classList.${op}('${cls}') 執行後，classList = "${el.className}"`;
+  }
+
+  function checkCls() {
+    const el = document.getElementById('class-target');
+    const has = el.classList.contains('highlight');
+    document.getElementById('cls-result').textContent =
+      `classList.contains('highlight') → ${has}`;
+  }
+
+  // ==========================================
+  // innerHTML vs textContent
+  // ==========================================
+  const contentExamples = {
+    html: {
+      code: `el.innerHTML = '<strong style="color:#68d391;">粗體</strong> + <em>斜體</em> + <a href="#">連結</a>';`,
+      html: '<strong style="color:#68d391;">粗體</strong> + <em>斜體</em> + <a href="#" style="color:#63b3ed;">連結</a>'
+    },
+    text: {
+      code: `el.textContent = '<strong>這段 HTML 標籤不會被解析，當作純文字顯示</strong>';`,
+      text: '<strong>這段 HTML 標籤不會被解析，當作純文字顯示</strong>'
+    },
+    xss: {
+      code: `// ⚠️ XSS 風險！永遠不要這樣做：\n// el.innerHTML = userInput;  // 若 userInput 含 <script>，就被攻擊了\n\n// ✅ 安全做法：\nel.textContent = userInput;  // 自動 escape HTML`,
+      html: '<span style="color:#fc8181;">⚠️ 若 userInput 是 &lt;img src=x onerror=alert(1)&gt;<br>用 innerHTML 就會執行惡意代碼！<br><strong style="color:#68d391;">請用 textContent 取代 innerHTML 來顯示使用者輸入。</strong></span>'
+    }
+  };
+
+  function setContent(type) {
+    const el = document.getElementById('content-target');
+    const ex = contentExamples[type];
+    if (ex.text !== undefined) {
+      el.textContent = ex.text;
+    } else {
+      el.innerHTML = ex.html;
+    }
+    document.getElementById('content-code').textContent = ex.code;
+  }
+
+  setContent('html');
+
+  // ==========================================
+  // 屬性操作
+  // ==========================================
+  const statuses = ['pending', 'processing', 'done', 'error'];
+  let statusIdx = 0;
+
+  function changeAttr() {
+    const el = document.getElementById('attr-target');
+    statusIdx = (statusIdx + 1) % statuses.length;
+    el.setAttribute('data-status', statuses[statusIdx]);
+    const colors = { pending:'#f6e05e', processing:'#63b3ed', done:'#68d391', error:'#fc8181' };
+    el.style.color = colors[statuses[statusIdx]];
+    readAttrs();
+  }
+
+  function readAttrs() {
+    const el = document.getElementById('attr-target');
+    document.getElementById('attr-result').textContent =
+`getAttribute('data-status') → "${el.getAttribute('data-status')}"
+dataset.status              → "${el.dataset.status}"
+getAttribute('title')       → "${el.getAttribute('title')}"
+hasAttribute('disabled')    → ${el.hasAttribute('disabled')}`;
+  }
+
+  function changeStyle() {
+    const el = document.getElementById('attr-target');
+    const styles = [
+      { fontSize:'1em', letterSpacing:'normal' },
+      { fontSize:'1.3em', letterSpacing:'2px' },
+    ];
+    const cur = el.style.fontSize === '1.3em' ? 0 : 1;
+    Object.assign(el.style, styles[cur]);
+  }
+
+  readAttrs();
+</script>
+
+</body>
+</html>

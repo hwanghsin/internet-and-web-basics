@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<!--
+  DOCTYPE 宣告：告訴瀏覽器這是 HTML5 文件
+  必須放在第一行，不是 HTML 標籤
+-->
+<html lang="zh-TW">
+<head>
+  <!-- charset=UTF-8：確保中文正確顯示（展示層概念） -->
+  <meta charset="UTF-8">
+  <!-- viewport：讓頁面在行動裝置上正常縮放 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- X-UA-Compatible：強制 IE 使用最新渲染模式 -->
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <!-- 分頁標題：顯示在瀏覽器分頁上 -->
+  <title>HTML 基礎結構</title>
+  <style>
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 6px; margin-top: 32px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: #f6e05e; font-size: 0.9em; }
+    pre { background: #171923; padding: 12px; border-radius: 6px; color: #a0aec0; overflow-x: auto; line-height: 1.6; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+    th { color: #a0aec0; font-weight: normal; background: #171923; }
+    .entity-demo { font-size: 1.4em; color: #f6e05e; }
+    canvas { border: 1px solid #4a5568; display: block; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<h1>HTML 基礎結構</h1>
+<p class="comment">來源：html_raw.txt｜HTML 是網頁的骨架，把區塊排列出來</p>
+
+<!-- ============================================================
+     基本文件結構
+============================================================ -->
+<h2>基本文件結構</h2>
+<div class="card">
+  <p>每個 HTML 文件的必要骨架：</p>
+  <pre>&lt;!DOCTYPE html&gt;         &lt;!-- 宣告 HTML5 版本 --&gt;
+&lt;html lang="zh-TW"&gt;      &lt;!-- 根元素，lang 影響 SEO 和無障礙 --&gt;
+  &lt;head&gt;                  &lt;!-- 元資料區（不顯示在頁面上） --&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;頁面標題&lt;/title&gt;
+    &lt;link rel="stylesheet" href="style.css"&gt;   &lt;!-- 每個 link 都是一次 HTTP 請求 --&gt;
+  &lt;/head&gt;
+  &lt;body&gt;                  &lt;!-- 可見內容區 --&gt;
+    &lt;!-- 頁面內容放這裡 --&gt;
+    &lt;script src="app.js"&gt;&lt;/script&gt;  &lt;!-- script 放 body 底部避免阻塞解析 --&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</pre>
+  <p class="comment">
+    伺服器回傳 HTML 時，瀏覽器從 &lt;head&gt; 開始逐行解析（L7 應用層）。<br>
+    遇到 &lt;link&gt; 或 &lt;script&gt; 就發出新的 HTTP 請求取回檔案。<br>
+    引用的外部檔案越少，載入越快（internet_raw.txt 的效能建議）。
+  </p>
+</div>
+
+<!-- ============================================================
+     Meta 標籤
+============================================================ -->
+<h2>Meta 標籤</h2>
+<div class="card">
+  <table>
+    <tr><th>Meta 標籤</th><th>用途</th></tr>
+    <tr><td><code>&lt;meta charset="UTF-8"&gt;</code></td><td>設定字元編碼，確保中文正確顯示</td></tr>
+    <tr><td><code>&lt;meta name="viewport"...&gt;</code></td><td>讓頁面在行動裝置上「正常」縮放（RWD 必備）</td></tr>
+    <tr><td><code>&lt;meta http-equiv="X-UA-Compatible"...&gt;</code></td><td>強制 IE 使用最新渲染引擎</td></tr>
+    <tr><td><code>&lt;meta name="description"...&gt;</code></td><td>SEO：搜尋引擎結果的描述文字</td></tr>
+    <tr><td><code>&lt;meta property="og:title"...&gt;</code></td><td>Open Graph：社群媒體分享的標題</td></tr>
+  </table>
+</div>
+
+<!-- ============================================================
+     絕對路徑 vs 相對路徑
+============================================================ -->
+<h2>絕對路徑 vs 相對路徑</h2>
+<div class="card">
+  <p class="comment">以 <code>http://example.com/app/</code> 為 base URL</p>
+  <table>
+    <tr><th>寫法</th><th>解析結果</th><th>說明</th></tr>
+    <tr>
+      <td><code>js/main.js</code></td>
+      <td><code>http://example.com/app/js/main.js</code></td>
+      <td>相對於目前目錄</td>
+    </tr>
+    <tr>
+      <td><code>./js/main.js</code></td>
+      <td><code>http://example.com/app/js/main.js</code></td>
+      <td>明確指定目前目錄（同上）</td>
+    </tr>
+    <tr>
+      <td><code>../js/main.js</code></td>
+      <td><code>http://example.com/js/main.js</code></td>
+      <td>上一層目錄</td>
+    </tr>
+    <tr>
+      <td><code>/js/main.js</code></td>
+      <td><code>http://example.com/js/main.js</code></td>
+      <td>從網域根目錄開始（絕對路徑）</td>
+    </tr>
+    <tr>
+      <td><code>https://cdn.example.com/lib.js</code></td>
+      <td>完整 URL</td>
+      <td>完整絕對路徑（外部資源）</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================================================
+     HTML 實體字元
+============================================================ -->
+<h2>HTML 實體字元（Entities）</h2>
+<div class="card">
+  <p class="comment">某些字元在 HTML 中有特殊含義，需要用實體字元來顯示</p>
+  <table>
+    <tr><th>實體</th><th>顯示結果</th><th>用途</th></tr>
+    <tr><td><code>&amp;nbsp;</code></td><td class="entity-demo">&nbsp;（空格）</td><td>不換行空格</td></tr>
+    <tr><td><code>&amp;lt;</code></td><td class="entity-demo">&lt;</td><td>小於符號（避免被解析為標籤）</td></tr>
+    <tr><td><code>&amp;gt;</code></td><td class="entity-demo">&gt;</td><td>大於符號</td></tr>
+    <tr><td><code>&amp;amp;</code></td><td class="entity-demo">&amp;</td><td>&amp; 字元本身</td></tr>
+    <tr><td><code>&amp;quot;</code></td><td class="entity-demo">&quot;</td><td>雙引號</td></tr>
+    <tr><td><code>&amp;copy;</code></td><td class="entity-demo">&copy;</td><td>版權符號</td></tr>
+    <tr><td><code>&amp;reg;</code></td><td class="entity-demo">&reg;</td><td>商標符號</td></tr>
+    <tr><td><code>&amp;yen;</code></td><td class="entity-demo">&yen;</td><td>日圓符號</td></tr>
+    <tr><td><code>&amp;euro;</code></td><td class="entity-demo">&euro;</td><td>歐元符號</td></tr>
+  </table>
+</div>
+
+<!-- ============================================================
+     data-* 自訂屬性
+============================================================ -->
+<h2>data-* 自訂屬性</h2>
+<div class="card">
+  <p class="comment">可定義在任何標籤，透過 JavaScript 的 dataset 存取</p>
+  <!-- data-id, data-role 是自訂資料屬性的範例 -->
+  <div id="user-card" data-id="42" data-role="admin" data-name="Hsin Hwang"
+       style="background:#2d3748; padding:12px; border-radius:6px; cursor:pointer;"
+       onclick="readDataAttributes()">
+    點擊讀取 data-* 屬性
+  </div>
+  <div id="data-result" style="margin-top:8px; color:#68d391;"></div>
+  <pre style="margin-top:12px;">&lt;div data-id="42" data-role="admin" data-name="Hsin Hwang"&gt;
+  ...
+&lt;/div&gt;
+
+// JavaScript 存取
+const el = document.getElementById('user-card');
+el.dataset.id   // → "42"
+el.dataset.role // → "admin"
+el.dataset.name // → "Hsin Hwang"</pre>
+</div>
+
+<!-- ============================================================
+     Canvas
+============================================================ -->
+<h2>Canvas 繪圖</h2>
+<div class="card">
+  <!-- canvas 元素本身只是一個空畫布，繪圖由 JavaScript 執行 -->
+  <canvas id="demo-canvas" width="400" height="200"></canvas>
+  <p class="comment">Canvas API 透過 JavaScript 在瀏覽器端即時繪製圖形，不需要網路請求</p>
+  <pre>const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+ctx.fillStyle = '#3182ce';
+ctx.fillRect(10, 10, 100, 60);     // 填色矩形
+
+ctx.beginPath();
+ctx.arc(200, 60, 40, 0, Math.PI * 2);  // 圓形
+ctx.fillStyle = '#68d391';
+ctx.fill();</pre>
+</div>
+
+<!-- ============================================================
+     SVG
+============================================================ -->
+<h2>SVG 向量圖形</h2>
+<div class="card">
+  <p class="comment">SVG 是 XML 格式的向量圖，可縮放不失真，可用 CSS/JS 操控</p>
+  <!-- SVG 圖形直接嵌入 HTML，不需要額外的 HTTP 請求 -->
+  <svg width="300" height="120" style="background:#171923; border-radius:6px; display:block;">
+    <!-- 圓形：cx/cy 為圓心，r 為半徑 -->
+    <circle cx="60" cy="60" r="40" stroke="#63b3ed" stroke-width="3" fill="#1a365d"/>
+    <!-- 矩形 -->
+    <rect x="130" y="20" width="80" height="80" fill="#276749" rx="8"/>
+    <!-- 文字 -->
+    <text x="240" y="55" fill="#f6e05e" font-size="14" font-family="monospace">SVG</text>
+    <text x="240" y="75" fill="#a0aec0" font-size="11" font-family="monospace">向量圖形</text>
+  </svg>
+  <pre>&lt;svg width="300" height="120"&gt;
+  &lt;!-- cx/cy=圓心, r=半徑, stroke=邊框顏色, fill=填色 --&gt;
+  &lt;circle cx="60" cy="60" r="40" stroke="#63b3ed" fill="#1a365d"/&gt;
+  &lt;rect x="130" y="20" width="80" height="80" fill="#276749" rx="8"/&gt;
+  &lt;text x="240" y="55" fill="#f6e05e"&gt;SVG&lt;/text&gt;
+&lt;/svg&gt;</pre>
+</div>
+
+<script>
+  // Canvas 繪圖
+  const canvas = document.getElementById('demo-canvas');
+  const ctx = canvas.getContext('2d');
+
+  // 背景
+  ctx.fillStyle = '#171923';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 填色矩形（fillRect）
+  ctx.fillStyle = '#2c5282';
+  ctx.fillRect(20, 40, 100, 60);
+  ctx.fillStyle = '#90cdf4';
+  ctx.font = '12px monospace';
+  ctx.fillText('fillRect', 25, 65);
+
+  // 邊線矩形（strokeRect）
+  ctx.strokeStyle = '#68d391';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(140, 40, 100, 60);
+  ctx.fillStyle = '#68d391';
+  ctx.fillText('strokeRect', 145, 65);
+
+  // 圓形（arc）
+  ctx.beginPath();
+  ctx.arc(320, 70, 35, 0, Math.PI * 2);
+  ctx.fillStyle = '#2d1b69';
+  ctx.fill();
+  ctx.strokeStyle = '#9f7aea';
+  ctx.stroke();
+  ctx.closePath();
+  ctx.fillStyle = '#c4b5fd';
+  ctx.fillText('arc', 308, 73);
+
+  // 文字標題
+  ctx.fillStyle = '#a0aec0';
+  ctx.font = '11px monospace';
+  ctx.fillText('Canvas 2D Context 繪圖示範', 10, 18);
+
+  // data-* 屬性讀取
+  function readDataAttributes() {
+    const el = document.getElementById('user-card');
+    document.getElementById('data-result').innerHTML =
+      `dataset.id = "${el.dataset.id}" &nbsp;|&nbsp; ` +
+      `dataset.role = "${el.dataset.role}" &nbsp;|&nbsp; ` +
+      `dataset.name = "${el.dataset.name}"`;
+  }
+</script>
+
+</body>
+</html>

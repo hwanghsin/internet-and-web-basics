@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<!--
+  ==========================================
+  網路概念：Client-Server 架構
+  OSI 層：L7 應用層（HTTP / DNS）
+  說明：Client（瀏覽器）主動發出請求，
+        Server（伺服器）被動回應。
+        DNS 解析是連線前的必要步驟。
+  ==========================================
+-->
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <!--
+    網路概念：DNS Prefetch
+    OSI 層：L7 應用層（DNS 協定）
+    說明：dns-prefetch 讓瀏覽器在使用者點擊連結前，
+          預先解析 DNS，省去連線時的 DNS 查詢時間（通常 20-120ms）。
+          這是利用瀏覽器的空閒時間做網路優化。
+  -->
+  <link rel="dns-prefetch" href="//fonts.googleapis.com">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--
+    網路概念：SEO Meta Tags（Open Graph）
+    OSI 層：L7 應用層
+    說明：這些 og: meta 標籤讓 Google、Facebook 等爬蟲
+          在索引頁面時，能正確讀取標題、描述和圖片，
+          產生漂亮的搜尋結果和社群分享卡片。
+  -->
+  <meta property="og:title" content="Client-Server 架構 Demo">
+  <meta property="og:description" content="展示 DNS 解析流程和 Client-Server 互動">
+  <title>Client-Server Demo</title>
+  <style>
+    body { font-family: monospace; max-width: 860px; margin: 0 auto; padding: 20px; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 8px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    button { background: #3182ce; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 4px; }
+    button:hover { background: #2b6cb0; }
+    .step { display: flex; align-items: flex-start; gap: 12px; margin: 6px 0; opacity: 0; transition: opacity 0.3s; }
+    .step.visible { opacity: 1; }
+    .step-num { background: #3182ce; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8em; flex-shrink: 0; }
+    .step-content { flex: 1; }
+    .step-label { color: #a0aec0; font-size: 0.8em; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+    th { color: #a0aec0; font-weight: normal; }
+    .port-highlight { color: #f6e05e; font-weight: bold; }
+    pre { background: #171923; padding: 12px; border-radius: 6px; color: #a0aec0; font-size: 0.85em; }
+    .flow-arrow { text-align: center; color: #4a5568; font-size: 1.2em; margin: 4px 0; }
+    .client-box { background: #1a365d; border: 1px solid #2b6cb0; border-radius: 8px; padding: 12px; text-align: center; }
+    .server-box { background: #1a4731; border: 1px solid #276749; border-radius: 8px; padding: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<h1>Client-Server 架構 Demo</h1>
+
+<!--
+  網路概念：Client-Server 基本模型
+  OSI 層：L7 應用層 到 L1 實體層
+  說明：Client 主動發起連線（HTTP 請求），
+        資料從 L7 開始封裝到 L1，
+        Server 端從 L1 解封裝到 L7 並回應。
+-->
+<h2>Client-Server 基本架構</h2>
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center;">
+    <div class="client-box">
+      <div style="font-size:1.5em;">💻</div>
+      <div style="font-weight:bold; color:#90cdf4;">Client（瀏覽器）</div>
+      <div style="font-size:0.8em; color:#718096; margin-top:4px;">發出 HTTP 請求</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="color:#68d391;">→ GET /index.html →</div>
+      <div style="height:8px;"></div>
+      <div style="color:#fc8181;">← 200 OK HTML ←</div>
+    </div>
+    <div class="server-box">
+      <div style="font-size:1.5em;">🖥</div>
+      <div style="font-weight:bold; color:#9ae6b4;">Server（伺服器）</div>
+      <div style="font-size:0.8em; color:#718096; margin-top:4px;">監聽 Port 80/443</div>
+    </div>
+  </div>
+</div>
+
+<!--
+  網路概念：DNS 解析完整流程
+  OSI 層：L7 應用層（DNS 協定）+ L3 網路層（IP 路由）
+  說明：瀏覽器只認識 IP，不認識網域名稱。
+        DNS 是「網路的電話簿」，負責把 google.com 翻譯成 142.250.x.x。
+        整個解析流程可能經過多個 DNS 伺服器，
+        但結果會被快取（TTL 決定快取時間）。
+-->
+<h2>DNS 解析流程動畫</h2>
+<div class="card">
+  <p class="comment">輸入網址後，瀏覽器在開始下載 HTML 前，必須先完成 DNS 解析</p>
+  <button onclick="startDNSAnimation()">▶ 開始動畫</button>
+  <div id="dns-steps" style="margin-top:16px;"></div>
+</div>
+
+<!--
+  網路概念：Port Numbers
+  OSI 層：L4 傳輸層（TCP/UDP Port）
+  說明：IP 位址找到「電腦」，Port 號碼找到「應用程式」。
+        伺服器的 Port 80（HTTP）/ 443（HTTPS）是標準埠，
+        瀏覽器連線時如果不指定 Port 就用這些預設值。
+        internet_raw.txt：「使用者連線到伺服器的時候會連結它的80port。」
+-->
+<h2>Port Number（連接埠）</h2>
+<div class="card">
+  <table>
+    <tr><th>Port</th><th>協定</th><th>用途</th><th>說明</th></tr>
+    <tr><td class="port-highlight">80</td><td>HTTP</td><td>一般網頁</td><td>沒有加密，瀏覽器預設連此埠</td></tr>
+    <tr><td class="port-highlight">443</td><td>HTTPS</td><td>安全網頁</td><td>SSL/TLS 加密連線</td></tr>
+    <tr><td>22</td><td>SSH</td><td>遠端伺服器</td><td>命令列連線到伺服器</td></tr>
+    <tr><td>3306</td><td>MySQL</td><td>資料庫</td><td>後端程式連接資料庫</td></tr>
+    <tr><td>3000 / 8080</td><td>Dev Server</td><td>前端開發</td><td><code>npm run dev</code> 通常在這裡</td></tr>
+  </table>
+</div>
+
+<!--
+  網路概念：Default Document（index.html）
+  OSI 層：L7 應用層
+  說明：當 URL 沒有指定路徑（只有網域），
+        伺服器自動回傳 index.html。
+        這就是 web-basics/ 每個資料夾都叫 index.html 的原因。
+-->
+<h2>預設資源：index.html</h2>
+<div class="card">
+  <p class="comment">以下三種 URL 最終都回傳同樣的 index.html</p>
+  <pre>https://example.com
+https://example.com/
+https://example.com/index.html</pre>
+  <div class="comment">伺服器的「預設文件」設定 → 沒有路徑時自動找 index.html 回傳。</div>
+</div>
+
+<!--
+  網路概念：DevTools Network 時序分析
+  OSI 層：L7（DNS）+ L4（TCP 握手）+ L6（SSL）+ L7（TTFB）
+  說明：Chrome DevTools 的 Network → Timing 面板
+        把每個請求拆解成各 OSI 層的時間消耗，
+        這是前端工程師最直接的網路觀察工具。
+-->
+<h2>Chrome DevTools Timing 對照 OSI</h2>
+<div class="card">
+  <table>
+    <tr><th>DevTools 顯示</th><th>對應 OSI 層</th><th>代表意義</th><th>優化方向</th></tr>
+    <tr>
+      <td>DNS Lookup</td>
+      <td>L7 應用層（DNS）</td>
+      <td>網域→IP 的解析時間</td>
+      <td>用 dns-prefetch、改換更快的 DNS</td>
+    </tr>
+    <tr>
+      <td>Initial Connection</td>
+      <td>L4 傳輸層（TCP）</td>
+      <td>TCP 三向握手時間</td>
+      <td>用 CDN 讓伺服器離使用者更近</td>
+    </tr>
+    <tr>
+      <td>SSL</td>
+      <td>L6 展示層（TLS）</td>
+      <td>加密握手時間</td>
+      <td>HTTP/3 的 0-RTT 可消除這段</td>
+    </tr>
+    <tr>
+      <td>TTFB</td>
+      <td>L3-L7（端對端）</td>
+      <td>等待伺服器第一個位元組</td>
+      <td>後端 API 速度 / 資料庫優化</td>
+    </tr>
+    <tr>
+      <td>Content Download</td>
+      <td>L1-L4（傳輸）</td>
+      <td>下載檔案本體</td>
+      <td>壓縮圖片、Minify、Gzip</td>
+    </tr>
+  </table>
+  <div class="comment" style="margin-top:12px;">
+    📌 開啟 Chrome DevTools → Network → 點選任一請求 → Timing 分頁，就可以看到這張圖的實際數字。
+  </div>
+</div>
+
+<script>
+  // ==========================================
+  // DNS 解析流程動畫
+  // 網路概念：DNS（L7 應用層協定）
+  // 說明：展示從輸入網址到取得 IP 的完整查詢鏈
+  // ==========================================
+  const dnsSteps = [
+    {
+      label: '瀏覽器',
+      color: '#63b3ed',
+      msg: '使用者輸入 "google.com" 並按 Enter',
+      detail: '瀏覽器先檢查本地 DNS 快取（若有就直接用）'
+    },
+    {
+      label: '本地 DNS Resolver（ISP）',
+      color: '#f6e05e',
+      msg: '瀏覽器向 ISP 的 DNS Resolver 發出查詢',
+      detail: 'DNS query: "google.com 的 IP 是多少？"'
+    },
+    {
+      label: 'Root Name Server',
+      color: '#68d391',
+      msg: 'Resolver 向根伺服器查詢',
+      detail: '根伺服器回覆：".com 的 TLD Server 在這裡"'
+    },
+    {
+      label: 'TLD Server（.com）',
+      color: '#68d391',
+      msg: 'Resolver 向 .com TLD Server 查詢',
+      detail: 'TLD 回覆："google.com 的 Authoritative Server 在這裡"'
+    },
+    {
+      label: 'Authoritative Name Server',
+      color: '#fc8181',
+      msg: 'Resolver 向 Google 的 DNS 伺服器查詢',
+      detail: '回覆：google.com → 142.250.190.46（快取 TTL: 300s）'
+    },
+    {
+      label: '瀏覽器',
+      color: '#63b3ed',
+      msg: '取得 IP：142.250.190.46',
+      detail: '向 142.250.190.46 的 Port 443 建立 TCP 連線，開始下載網頁'
+    },
+  ];
+
+  function startDNSAnimation() {
+    const container = document.getElementById('dns-steps');
+    container.innerHTML = '';
+    dnsSteps.forEach((s, i) => {
+      const div = document.createElement('div');
+      div.className = 'step';
+      div.id = `step-${i}`;
+      div.innerHTML = `
+        <div class="step-num" style="background:${s.color}; color:#0f1117;">${i + 1}</div>
+        <div class="step-content">
+          <div class="step-label">${s.label}</div>
+          <div>${s.msg}</div>
+          <div style="color:#a0aec0; font-size:0.85em; margin-top:2px;">${s.detail}</div>
+        </div>
+      `;
+      container.appendChild(div);
+      setTimeout(() => { div.classList.add('visible'); }, i * 600);
+    });
+  }
+</script>
+
+</body>
+</html>

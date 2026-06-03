@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- SEO：og 標籤讓社群媒體正確顯示預覽卡片 -->
+  <meta property="og:title" content="語意化 HTML 範例">
+  <meta property="og:description" content="展示 HTML5 語意標籤、媒體元素、表格">
+  <title>語意化 HTML</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 0; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; padding: 0 20px; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 6px; margin-top: 32px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: #f6e05e; font-size: 0.9em; }
+    pre { background: #171923; padding: 12px; border-radius: 6px; color: #a0aec0; overflow-x: auto; font-size: 0.85em; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+    th { color: #a0aec0; font-weight: normal; background: #171923; }
+    .outline-label {
+      position: absolute; top: 4px; left: 4px;
+      font-size: 0.65em; background: rgba(0,0,0,0.6);
+      padding: 2px 6px; border-radius: 3px; color: #a0aec0;
+    }
+    .section-content { padding: 16px 20px; }
+
+    /* 語意化版型示範 */
+    .semantic-layout { border: 1px solid #2d3748; border-radius: 8px; overflow: hidden; }
+    nav.demo-nav {
+      background: #1a365d; padding: 10px 16px;
+      display: flex; gap: 16px; align-items: center;
+      position: relative;
+    }
+    nav.demo-nav a { color: #90cdf4; text-decoration: none; font-size: 0.9em; }
+    header.demo-header { background: #1a202c; padding: 20px; position: relative; }
+    main.demo-main {
+      display: grid; grid-template-columns: 1fr 220px; gap: 16px;
+      padding: 16px; background: #0f1117;
+    }
+    article.demo-article { background: #1a202c; border-radius: 6px; padding: 16px; position: relative; }
+    section.demo-section { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #2d3748; position: relative; }
+    aside.demo-aside { background: #1a202c; border-radius: 6px; padding: 16px; position: relative; height: fit-content; }
+    footer.demo-footer { background: #171923; padding: 12px 16px; text-align: center; font-size: 0.8em; color: #718096; position: relative; }
+  </style>
+</head>
+<body>
+
+<div class="section-content">
+<h1>語意化 HTML</h1>
+<p class="comment">來源：html_raw.txt｜語意化標籤讓 SEO 和無障礙工具能理解頁面結構</p>
+
+<!-- ============================================================
+     語意化版型（互動式）
+============================================================ -->
+<h2>語意化版型結構</h2>
+<p class="comment">以下是一個使用語意標籤的完整頁面版型。每個標籤都有其 SEO/無障礙意義。</p>
+
+<div class="semantic-layout">
+
+  <!--
+    <nav>：導覽區塊
+    SEO：搜尋引擎知道這裡是導覽連結，不計入主要內容
+    無障礙：螢幕閱讀器可直接跳到 nav 或跳過 nav
+  -->
+  <nav class="demo-nav">
+    <span class="outline-label">&lt;nav&gt; 導覽</span>
+    <strong style="color:#63b3ed;">🌐 MyBlog</strong>
+    <a href="#">首頁</a>
+    <a href="#">文章</a>
+    <a href="#">關於</a>
+  </nav>
+
+  <!--
+    <header>：標題區塊
+    SEO：通常包含 h1 標題，這是頁面最重要的關鍵字
+    注意：每個 article/section 也可以有自己的 header
+  -->
+  <header class="demo-header">
+    <span class="outline-label">&lt;header&gt; 頁首</span>
+    <h1 style="margin:0; font-size:1.4em; color:#63b3ed;">我的技術部落格</h1>
+    <p style="margin:4px 0 0; color:#718096; font-size:0.9em;">分享 Web 開發和網路知識</p>
+  </header>
+
+  <main class="demo-main">
+
+    <!--
+      <article>：文章主體區塊
+      SEO：已完整的、可獨立存在的內容（適合被 RSS、社群分享）
+      無障礙：搜尋引擎給予更高的 SEO 權重
+    -->
+    <article class="demo-article">
+      <span class="outline-label">&lt;article&gt; 文章主體</span>
+
+      <!--
+        <section>：文章的一個段落
+        一篇 article 通常由多個 section 組成
+        多個 section 合在一起才是完整的 article
+      -->
+      <section class="demo-section">
+        <span class="outline-label">&lt;section&gt; 第一段</span>
+        <h2 style="margin-top:0; font-size:1.1em;">OSI 七層模型入門</h2>
+
+        <!--
+          <time>：時間標籤
+          datetime 屬性使用 ISO 8601 格式，讓機器可讀
+          SEO：搜尋引擎用此判斷內容新鮮度
+        -->
+        <time datetime="2024-06-01" style="color:#718096; font-size:0.8em;">📅 2024-06-01</time>
+
+        <p style="font-size:0.9em; margin:8px 0;">
+          OSI 七層模型是網路通訊的基礎架構，定義了資料從應用程式到實體線路的路徑。
+          <mark>對前端工程師來說，最重要的是 L5-L7 層。</mark>
+        </p>
+
+        <!--
+          <figure> + <figcaption>：圖片加說明
+          SEO：figcaption 提供圖片的文字描述，輔助 SEO
+          無障礙：搭配 img 的 alt 屬性，讓視障者理解圖片內容
+        -->
+        <figure style="margin:8px 0; background:#171923; padding:8px; border-radius:4px;">
+          <div style="text-align:center; padding:12px; color:#4a5568;">[ 圖片：OSI 七層示意圖 ]</div>
+          <figcaption style="font-size:0.8em; color:#718096; text-align:center;">
+            圖 1：OSI 七層模型與 TCP/IP 四層模型對照
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="demo-section" style="border:none;">
+        <span class="outline-label">&lt;section&gt; 第二段</span>
+        <h2 style="margin-top:0; font-size:1.1em;">文字強調標籤</h2>
+        <p style="font-size:0.9em;">
+          <strong>strong</strong>（語意上的重要，通常加粗） vs
+          <em>em</em>（強調語氣，通常斜體）<br>
+          <mark>mark（螢光筆高亮）</mark>，適合標記搜尋關鍵字
+        </p>
+
+        <!--
+          <details> + <summary>：可折疊內容
+          不需 JS 就能達到展開/收合效果
+          無障礙：鍵盤可操作（Enter 或 Space）
+        -->
+        <details style="margin-top:8px;">
+          <summary style="cursor:pointer; color:#63b3ed;">▶ 點擊展開：TCP vs UDP 比較</summary>
+          <div style="padding:8px; background:#171923; border-radius:4px; margin-top:4px; font-size:0.85em;">
+            <strong>TCP</strong>：可靠、有序、握手確認，用於 HTTP<br>
+            <strong>UDP</strong>：快速、無確認，用於影片串流、DNS
+          </div>
+        </details>
+      </section>
+
+    </article>
+
+    <!--
+      <aside>：側邊欄
+      SEO：內容與主文相關但非必要，搜尋引擎給予較低權重
+      常用於：相關文章、廣告、標籤雲、作者資訊
+    -->
+    <aside class="demo-aside">
+      <span class="outline-label">&lt;aside&gt; 側欄</span>
+      <h3 style="margin:0 0 8px; font-size:0.9em; color:#68d391;">相關文章</h3>
+      <ul style="list-style:none; padding:0; margin:0; font-size:0.85em;">
+        <li style="margin:6px 0;"><a href="#" style="color:#63b3ed;">HTTP/2 vs HTTP/3</a></li>
+        <li style="margin:6px 0;"><a href="#" style="color:#63b3ed;">DNS 解析流程</a></li>
+        <li style="margin:6px 0;"><a href="#" style="color:#63b3ed;">fetch() 完整教學</a></li>
+      </ul>
+      <hr style="border-color:#2d3748; margin:12px 0;">
+      <h3 style="margin:0 0 8px; font-size:0.9em; color:#68d391;">標籤</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:4px; font-size:0.8em;">
+        <span style="background:#1a365d; color:#90cdf4; padding:2px 8px; border-radius:4px;">網路</span>
+        <span style="background:#1a4731; color:#9ae6b4; padding:2px 8px; border-radius:4px;">前端</span>
+        <span style="background:#2d1b69; color:#c4b5fd; padding:2px 8px; border-radius:4px;">HTTP</span>
+      </div>
+    </aside>
+
+  </main>
+
+  <!--
+    <footer>：結尾
+    SEO：通常放版權、聯絡資訊、地址
+    無障礙：螢幕閱讀器可快速定位到頁尾資訊
+  -->
+  <footer class="demo-footer">
+    <span class="outline-label">&lt;footer&gt; 頁尾</span>
+    &copy; 2024 MyBlog &nbsp;|&nbsp;
+    <!-- 用 address 標籤包裝聯絡資訊，這是語意化的用法 -->
+    <address style="display:inline; font-style:normal;">
+      <a href="mailto:hello@example.com" style="color:#63b3ed;">hello@example.com</a>
+    </address>
+  </footer>
+</div>
+</div>
+
+<div class="section-content">
+
+<!-- ============================================================
+     媒體元素
+============================================================ -->
+<h2>媒體元素</h2>
+<div class="card">
+  <p class="comment">audio / video / picture 都使用 &lt;source&gt; 提供多格式，讓瀏覽器選擇支援的格式</p>
+
+  <!-- audio 標籤 -->
+  <h3 style="color:#a0aec0;">audio 音訊</h3>
+  <pre>&lt;audio controls loop muted&gt;
+  &lt;source src="audio.mp3" type="audio/mpeg"&gt;   &lt;!-- Chrome, Firefox --&gt;
+  &lt;source src="audio.ogg" type="audio/ogg"&gt;    &lt;!-- Firefox --&gt;
+  你的瀏覽器不支援 audio 標籤。
+&lt;/audio&gt;</pre>
+  <p class="comment">controls：顯示控制列 | loop：循環播放 | autoplay：自動播放 | muted：靜音</p>
+
+  <!-- video 標籤 -->
+  <h3 style="color:#a0aec0;">video 影片</h3>
+  <pre>&lt;video controls width="640" height="360" poster="thumbnail.jpg"&gt;
+  &lt;source src="video.mp4" type="video/mp4"&gt;     &lt;!-- 最廣泛支援 --&gt;
+  &lt;source src="video.webm" type="video/webm"&gt;   &lt;!-- Chrome, Firefox --&gt;
+  你的瀏覽器不支援 video 標籤。
+&lt;/video&gt;</pre>
+  <p class="comment">poster：影片尚未播放時顯示的預覽圖 | 只有 video 可以設定 width/height</p>
+
+  <!-- picture 標籤 -->
+  <h3 style="color:#a0aec0;">picture 響應式圖片</h3>
+  <pre>&lt;picture&gt;
+  &lt;!-- 螢幕寬度 &gt;= 800px 時使用大圖 --&gt;
+  &lt;source media="(min-width: 800px)" srcset="hero-large.webp" type="image/webp"&gt;
+  &lt;!-- 螢幕寬度 &gt;= 400px 時使用中圖 --&gt;
+  &lt;source media="(min-width: 400px)" srcset="hero-medium.webp" type="image/webp"&gt;
+  &lt;!-- 預設圖（舊瀏覽器 fallback）--&gt;
+  &lt;img src="hero-small.jpg" alt="英雄圖片" loading="lazy"&gt;
+&lt;/picture&gt;</pre>
+  <p class="comment">picture 讓瀏覽器根據螢幕大小選擇最適合的圖片，節省行動裝置流量</p>
+</div>
+
+<!-- ============================================================
+     語意標籤總覽
+============================================================ -->
+<h2>語意標籤與 SEO/無障礙對照</h2>
+<div class="card">
+  <table>
+    <tr><th>標籤</th><th>語意</th><th>SEO 影響</th><th>無障礙（ARIA）</th></tr>
+    <tr><td><code>&lt;nav&gt;</code></td><td>導覽連結集合</td><td>連結不計入主要內容</td><td>role=navigation，可快速跳過</td></tr>
+    <tr><td><code>&lt;header&gt;</code></td><td>頁首或章節頭部</td><td>通常含 h1，關鍵字權重高</td><td>role=banner（頁面頂層 header）</td></tr>
+    <tr><td><code>&lt;main&gt;</code></td><td>頁面主要內容</td><td>搜尋引擎重點抓取區域</td><td>role=main，螢幕閱讀器快捷跳轉</td></tr>
+    <tr><td><code>&lt;article&gt;</code></td><td>獨立完整內容</td><td>適合 RSS 抓取，SEO 權重高</td><td>role=article</td></tr>
+    <tr><td><code>&lt;section&gt;</code></td><td>文章的一個段落</td><td>配合標題形成內容結構</td><td>role=region（需有標題）</td></tr>
+    <tr><td><code>&lt;aside&gt;</code></td><td>補充說明/側欄</td><td>權重低於主內容</td><td>role=complementary</td></tr>
+    <tr><td><code>&lt;footer&gt;</code></td><td>頁尾或章節尾部</td><td>版權、聯絡資訊</td><td>role=contentinfo</td></tr>
+    <tr><td><code>&lt;time&gt;</code></td><td>時間/日期</td><td>datetime 屬性讓機器讀懂時間</td><td>搜尋引擎判斷內容新鮮度</td></tr>
+    <tr><td><code>&lt;figure&gt;</code></td><td>圖片/圖表容器</td><td>配合 figcaption 提供文字描述</td><td>role=figure</td></tr>
+    <tr><td><code>&lt;mark&gt;</code></td><td>高亮標記</td><td>適合標記搜尋關鍵字</td><td>螢幕閱讀器宣告「標記」</td></tr>
+    <tr><td><code>&lt;details&gt;</code></td><td>可折疊內容</td><td>內容仍可被索引</td><td>鍵盤可操作（Enter/Space）</td></tr>
+  </table>
+</div>
+
+<!-- ============================================================
+     表格
+============================================================ -->
+<h2>表格（Table）</h2>
+<div class="card">
+  <p class="comment">colspan 跨欄、rowspan 跨列，讓複雜資料清晰呈現</p>
+
+  <!-- 表格示範：colspan / rowspan -->
+  <table style="border:1px solid #4a5568; margin-bottom:12px;">
+    <caption style="color:#a0aec0; font-size:0.85em; margin-bottom:8px;">OSI 模型對照表（colspan/rowspan 示範）</caption>
+    <thead>
+      <tr>
+        <th style="background:#1a365d;">OSI 層</th>
+        <th style="background:#1a365d;">TCP/IP 對應</th>
+        <th style="background:#1a365d;">協定</th>
+        <th style="background:#1a365d;">前端關聯</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- rowspan：L7/L6/L5 共用一個「應用層」的 TCP/IP 欄 -->
+      <tr>
+        <td>L7 應用層</td>
+        <td rowspan="3" style="background:#1a2f44; text-align:center; vertical-align:middle;">應用層<br><small>(Application)</small></td>
+        <td>HTTP, DNS</td>
+        <td>fetch(), axios</td>
+      </tr>
+      <tr>
+        <td>L6 展示層</td>
+        <td>SSL/TLS, UTF-8</td>
+        <td>JSON, HTTPS</td>
+      </tr>
+      <tr>
+        <td>L5 會話層</td>
+        <td>Session, Cookie</td>
+        <td>Cookie, JWT</td>
+      </tr>
+      <!-- colspan：「L1 + L2」合併為一欄 -->
+      <tr>
+        <td colspan="2" style="background:#1a202c; text-align:center;">L1+L2 實體/資料連結層</td>
+        <td>Ethernet, Wi-Fi</td>
+        <td>（前端通常不接觸）</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre>&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;&lt;th&gt;OSI 層&lt;/th&gt;&lt;th&gt;TCP/IP 對應&lt;/th&gt;...&lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;L7 應用層&lt;/td&gt;
+      &lt;td rowspan="3"&gt;應用層&lt;/td&gt;   &lt;!-- 跨 3 列 --&gt;
+      ...
+    &lt;/tr&gt;
+    &lt;tr&gt;&lt;td colspan="2"&gt;L1+L2&lt;/td&gt;&lt;/tr&gt;  &lt;!-- 跨 2 欄 --&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</pre>
+</div>
+
+</div><!-- end section-content -->
+
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<!--
+  ==========================================
+  網路概念：HTTP Request / Response
+  OSI 層：L7 應用層（Application Layer）
+  說明：瀏覽器發出的每個請求都是 HTTP 訊息，
+        包含 Method、Path、Host、Headers 等欄位，
+        伺服器回傳 Status Code 和 Body。
+  ==========================================
+-->
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <!--
+    網路概念：charset=UTF-8
+    OSI 層：L6 展示層（Presentation Layer）
+    說明：HTML 解析順序是 head → body，
+          伺服器回傳 HTML 時瀏覽器一行一行讀取，
+          charset 宣告越早出現越好，避免亂碼。
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP Request / Response Demo</title>
+  <style>
+    body { font-family: monospace; max-width: 860px; margin: 0 auto; padding: 20px; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 8px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    button { background: #3182ce; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 4px; }
+    button:hover { background: #2b6cb0; }
+    .method { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9em; }
+    .get    { background: #276749; color: #9ae6b4; }
+    .post   { background: #744210; color: #fbd38d; }
+    .put    { background: #2c5282; color: #90cdf4; }
+    .delete { background: #742a2a; color: #feb2b2; }
+    .status-2xx { color: #68d391; }
+    .status-3xx { color: #f6e05e; }
+    .status-4xx { color: #fc8181; }
+    .status-5xx { color: #fc8181; font-weight: bold; }
+    pre { background: #171923; padding: 12px; border-radius: 6px; overflow-x: auto; color: #a0aec0; font-size: 0.85em; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+    th { color: #a0aec0; font-weight: normal; }
+    select { background: #2d3748; color: #e2e8f0; border: 1px solid #4a5568; padding: 6px; border-radius: 4px; }
+    .label { color: #a0aec0; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+
+<h1>HTTP Request / Response Demo</h1>
+<p class="comment">OSI L7 應用層 — 網頁與伺服器之間的通訊協定</p>
+
+<!--
+  網路概念：HTTP Methods（RESTful）
+  OSI 層：L7 應用層
+  說明：HTTP method 定義了對伺服器資源的操作意圖，
+        這是 internet_raw.txt 提到的 Method 屬性：GET/POST/PUT/DELETE。
+-->
+<h2>HTTP Methods</h2>
+<div class="card">
+  <table>
+    <tr>
+      <th>Method</th><th>語義</th><th>有 Body？</th><th>典型使用場景</th>
+    </tr>
+    <tr>
+      <td><span class="method get">GET</span></td>
+      <td>取得資源</td><td>否</td><td>讀取文章、查詢資料</td>
+    </tr>
+    <tr>
+      <td><span class="method post">POST</span></td>
+      <td>新增資源</td><td>是</td><td>送出表單、上傳檔案</td>
+    </tr>
+    <tr>
+      <td><span class="method put">PUT</span></td>
+      <td>更新資源（整體）</td><td>是</td><td>編輯個人資料</td>
+    </tr>
+    <tr>
+      <td><span class="method delete">DELETE</span></td>
+      <td>刪除資源</td><td>否</td><td>刪除留言</td>
+    </tr>
+  </table>
+</div>
+
+<!--
+  網路概念：HTTP Request 結構
+  OSI 層：L7 應用層
+  說明：Request headers 帶有 Method、Path、Host 等欄位，
+        這些資訊是伺服器判斷「誰在問什麼」的依據。
+-->
+<h2>HTTP Request 解析</h2>
+<div class="card">
+  <p class="comment">點選以下範例，查看對應的 Request 結構</p>
+  <button onclick="showRequest('get')">GET 查詢使用者</button>
+  <button onclick="showRequest('post')">POST 新增文章</button>
+  <button onclick="showRequest('put')">PUT 更新資料</button>
+  <button onclick="showRequest('delete')">DELETE 刪除留言</button>
+  <pre id="request-box" style="margin-top:12px;">← 點選上方按鈕</pre>
+</div>
+
+<!--
+  網路概念：HTTP Status Codes
+  OSI 層：L7 應用層
+  說明：每個回應都帶有 status code，
+        這是 internet_raw.txt 說的「回傳的狀態」。
+        前端工程師根據這些狀態碼決定如何處理回應。
+-->
+<h2>HTTP Status Codes</h2>
+<div class="card">
+  <select id="status-select" onchange="showStatusInfo()">
+    <option value="">選擇 Status Code</option>
+    <option value="200">200 OK</option>
+    <option value="201">201 Created</option>
+    <option value="204">204 No Content</option>
+    <option value="301">301 Moved Permanently</option>
+    <option value="304">304 Not Modified</option>
+    <option value="400">400 Bad Request</option>
+    <option value="401">401 Unauthorized</option>
+    <option value="403">403 Forbidden</option>
+    <option value="404">404 Not Found</option>
+    <option value="500">500 Internal Server Error</option>
+    <option value="502">502 Bad Gateway</option>
+    <option value="503">503 Service Unavailable</option>
+  </select>
+  <div id="status-info" style="margin-top:12px;"></div>
+</div>
+
+<!--
+  網路概念：HTTP 版本演進
+  OSI 層：L4 傳輸層（TCP → UDP/QUIC） + L7 應用層
+  說明：HTTP 版本的演進主要解決 TCP 的效能限制，
+        HTTP/2 引入多路復用，HTTP/3 直接換掉 TCP 改用 QUIC。
+-->
+<h2>HTTP 版本演進</h2>
+<div class="card">
+  <table>
+    <tr><th>版本</th><th>傳輸層</th><th>關鍵改進</th><th>前端影響</th></tr>
+    <tr>
+      <td><strong>HTTP/1.1</strong></td>
+      <td>TCP</td>
+      <td>同域最多 6 條連線；隊頭阻塞</td>
+      <td>需要 CSS Sprite、檔案合併</td>
+    </tr>
+    <tr>
+      <td><strong>HTTP/2</strong></td>
+      <td>TCP</td>
+      <td>多路復用、Header 壓縮（HPACK）、Server Push</td>
+      <td>多個小請求不再是效能問題</td>
+    </tr>
+    <tr>
+      <td><strong>HTTP/3</strong></td>
+      <td>UDP（QUIC）</td>
+      <td>0-RTT 握手、連線遷移、獨立流傳輸</td>
+      <td>Wi-Fi↔4G 切換時連線不斷</td>
+    </tr>
+  </table>
+</div>
+
+<!--
+  網路概念：Minify 與效能
+  OSI 層：L6 展示層（資料壓縮） + L4 傳輸層（傳輸量）
+  說明：每個 <link> 和 <script> 都是一次 HTTP 請求（L7），
+        minify 減少 Content-Length（L6），
+        請求次數越少、檔案越小，載入越快。
+-->
+<h2>Minify 效能模擬</h2>
+<div class="card">
+  <p class="comment">展示 minify 前後的檔案大小差異</p>
+  <button onclick="simulateMinify()">模擬 Minify 效果</button>
+  <div id="minify-result" style="margin-top:12px;"></div>
+</div>
+
+<script>
+  // ==========================================
+  // 網路概念：HTTP Request 結構（L7 應用層）
+  // ==========================================
+  const requests = {
+    get: `GET /api/users/42 HTTP/1.1
+Host: api.example.com
+Method: GET
+Path: /api/users/42
+Cookie: session_id=abc123; theme=dark
+User-Agent: Mozilla/5.0
+
+→ 取得 ID 為 42 的使用者資料（無 Body）`,
+
+    post: `POST /api/articles HTTP/1.1
+Host: api.example.com
+Method: POST
+Path: /api/articles
+Content-Type: application/json
+Cookie: session_id=abc123
+Content-Length: 87
+
+{
+  "title": "網路基礎",
+  "body": "OSI 七層模型說明...",
+  "author_id": 42
+}`,
+
+    put: `PUT /api/users/42 HTTP/1.1
+Host: api.example.com
+Method: PUT
+Path: /api/users/42
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+
+{
+  "name": "Hsin Hwang",
+  "email": "new@example.com"
+}`,
+
+    delete: `DELETE /api/comments/99 HTTP/1.1
+Host: api.example.com
+Method: DELETE
+Path: /api/comments/99
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+
+→ 刪除留言 ID 99（無 Body）`,
+  };
+
+  function showRequest(method) {
+    document.getElementById('request-box').textContent = requests[method];
+  }
+
+  // ==========================================
+  // 網路概念：HTTP Status Codes（L7 應用層）
+  // ==========================================
+  const statusInfo = {
+    '200': { name: 'OK', group: '2xx', desc: '請求成功。GET 查詢到資料、PUT 更新完成都用這個。', action: '正常處理回傳資料' },
+    '201': { name: 'Created', group: '2xx', desc: '成功新增了資源。POST 建立新資料後通常回傳 201。', action: '通常 body 含新建立的資源' },
+    '204': { name: 'No Content', group: '2xx', desc: '成功但不回傳內容。DELETE 刪除後常用。', action: '不需要處理 body（它是空的）' },
+    '301': { name: 'Moved Permanently', group: '3xx', desc: '資源永久搬移到新網址。', action: '瀏覽器自動跳轉到 Location header 指定的新網址' },
+    '304': { name: 'Not Modified', group: '3xx', desc: '瀏覽器快取的版本仍然有效，不需重新下載。', action: '使用本地快取，節省流量' },
+    '400': { name: 'Bad Request', group: '4xx', desc: '請求格式有誤（如 JSON 格式錯誤）。這是客戶端的問題。', action: '前端需要修正請求內容' },
+    '401': { name: 'Unauthorized', group: '4xx', desc: '需要登入（沒有帶 token 或 token 過期）。', action: '前端跳轉到登入頁面' },
+    '403': { name: 'Forbidden', group: '4xx', desc: '已登入但沒有權限（例如普通用戶存取管理員 API）。', action: '顯示「無權限」訊息' },
+    '404': { name: 'Not Found', group: '4xx', desc: '找不到這個資源（URL 路徑不存在）。', action: '顯示 404 頁面' },
+    '500': { name: 'Internal Server Error', group: '5xx', desc: '伺服器程式崩潰了。這是後端的問題。', action: '聯絡後端工程師；前端顯示「系統錯誤」' },
+    '502': { name: 'Bad Gateway', group: '5xx', desc: '反向代理伺服器（如 Nginx）收到無效回應。', action: '通常是後端服務掛了' },
+    '503': { name: 'Service Unavailable', group: '5xx', desc: '服務暫時不可用（可能在維護或過載）。', action: '等待後重試' },
+  };
+
+  function showStatusInfo() {
+    const code = document.getElementById('status-select').value;
+    if (!code) return;
+    const info = statusInfo[code];
+    const cls = `status-${info.group}`;
+    document.getElementById('status-info').innerHTML = `
+      <div class="card">
+        <div class="label">Status Code</div>
+        <div class="${cls}" style="font-size:1.4em; font-weight:bold;">${code} ${info.name}</div>
+        <br>
+        <div class="label">群組</div>
+        <div>${info.group} — ${{'2xx':'成功','3xx':'重定向','4xx':'客戶端錯誤','5xx':'伺服器錯誤'}[info.group]}</div>
+        <br>
+        <div class="label">說明</div>
+        <div>${info.desc}</div>
+        <br>
+        <div class="label">前端處理方式</div>
+        <div style="color:#63b3ed;">${info.action}</div>
+      </div>
+    `;
+  }
+
+  // ==========================================
+  // 網路概念：Minify 效能（L6 展示層 + L4 傳輸層）
+  // ==========================================
+  function simulateMinify() {
+    const original = `/* 導覽列樣式 */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #1a202c;
+  border-bottom: 1px solid #2d3748;
+}
+
+/* 連結樣式 */
+.navbar a {
+  color: #e2e8f0;
+  text-decoration: none;
+  margin-left: 24px;
+}`;
+
+    const minified = `.navbar{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;background-color:#1a202c;border-bottom:1px solid #2d3748;}.navbar a{color:#e2e8f0;text-decoration:none;margin-left:24px;}`;
+
+    const origSize = new Blob([original]).size;
+    const minSize = new Blob([minified]).size;
+    const saving = (((origSize - minSize) / origSize) * 100).toFixed(1);
+
+    document.getElementById('minify-result').innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="card">
+          <div class="label">原始 CSS（${origSize} bytes）</div>
+          <pre style="margin-top:8px; font-size:0.75em;">${original.replace(/</g,'&lt;')}</pre>
+        </div>
+        <div class="card">
+          <div class="label">Minified（${minSize} bytes）</div>
+          <pre style="margin-top:8px; font-size:0.75em; word-break:break-all;">${minified}</pre>
+          <div style="color:#68d391; margin-top:8px;">節省 ${saving}% 的傳輸量</div>
+          <div class="comment">這就是 .min.css 的由來！<br>空格被刪去，縮少 Content-Length，HTTP 傳輸更快。</div>
+        </div>
+      </div>
+    `;
+  }
+</script>
+
+</body>
+</html>

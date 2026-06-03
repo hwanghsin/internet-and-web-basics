@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML 表單</title>
+  <style>
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 6px; margin-top: 32px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: #f6e05e; font-size: 0.9em; }
+    label { display: block; color: #a0aec0; font-size: 0.85em; margin-bottom: 4px; margin-top: 12px; }
+    input, select, textarea {
+      width: 100%; padding: 8px 10px; border-radius: 4px;
+      background: #2d3748; color: #e2e8f0;
+      border: 1px solid #4a5568; font-family: monospace;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #63b3ed; }
+    input:valid { border-color: #276749; }
+    input:invalid:not(:placeholder-shown) { border-color: #742a2a; }
+    input[type="checkbox"], input[type="radio"] { width: auto; }
+    button[type="submit"] {
+      background: #3182ce; color: white; border: none;
+      padding: 10px 20px; border-radius: 4px; cursor: pointer;
+      font-family: monospace; font-size: 1em; margin-top: 16px;
+      width: 100%;
+    }
+    button[type="submit"]:hover { background: #2b6cb0; }
+    button[type="reset"] {
+      background: #2d3748; color: #e2e8f0; border: 1px solid #4a5568;
+      padding: 10px 20px; border-radius: 4px; cursor: pointer;
+      font-family: monospace; font-size: 1em; margin-top: 8px;
+      width: 100%;
+    }
+    fieldset { border: 1px solid #4a5568; border-radius: 6px; padding: 12px; margin: 12px 0; }
+    legend { color: #68d391; padding: 0 8px; }
+    #form-output { background: #171923; padding: 12px; border-radius: 6px; margin-top: 12px; min-height: 60px; color: #68d391; font-size: 0.9em; }
+    .validation-msg { font-size: 0.8em; margin-top: 4px; }
+    .valid-msg { color: #68d391; }
+    .invalid-msg { color: #fc8181; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+    th { color: #a0aec0; font-weight: normal; background: #171923; }
+  </style>
+</head>
+<body>
+
+<h1>HTML 表單</h1>
+<p class="comment">來源：html_raw.txt｜表單是 Client 向 Server 送出資料的主要方式</p>
+
+<!-- ============================================================
+     Form 屬性說明
+============================================================ -->
+<h2>Form 屬性</h2>
+<div class="card">
+  <table>
+    <tr><th>屬性</th><th>說明</th><th>範例</th></tr>
+    <tr>
+      <td><code>action</code></td>
+      <td>送出的目標 URL（Server 端處理程式）</td>
+      <td><code>/api/register</code></td>
+    </tr>
+    <tr>
+      <td><code>method</code></td>
+      <td><code>get</code>（資料在 URL）或 <code>post</code>（資料在 body）</td>
+      <td><code>method="post"</code></td>
+    </tr>
+    <tr>
+      <td><code>enctype</code></td>
+      <td>搭配 POST 的資料格式，上傳檔案時需設為 <code>multipart/form-data</code></td>
+      <td><code>enctype="multipart/form-data"</code></td>
+    </tr>
+    <tr>
+      <td><code>target</code></td>
+      <td>回應在哪裡開啟（<code>_self</code> / <code>_blank</code>）</td>
+      <td><code>target="_blank"</code></td>
+    </tr>
+  </table>
+  <p class="comment">
+    GET：資料附在 URL 的 Query String，<code>?name=Ted&age=30</code>，適合搜尋/過濾<br>
+    POST：資料在 HTTP Request Body 中，適合送出敏感資料（密碼）或大量資料
+  </p>
+</div>
+
+<!-- ============================================================
+     完整表單範例（含所有 input 類型）
+============================================================ -->
+<h2>完整表單範例</h2>
+<div class="card">
+  <!--
+    action="#" 讓表單不跳頁
+    novalidate 關閉瀏覽器原生驗證（改用 JS 自訂）
+  -->
+  <form id="demo-form" action="#" method="post" onsubmit="handleSubmit(event)">
+
+    <!-- 文字輸入 -->
+    <label for="username">用戶名稱 *</label>
+    <input type="text" id="username" name="username"
+           placeholder="輸入 3-20 個字元"
+           required minlength="3" maxlength="20"
+           oninput="validateField(this)">
+    <div class="validation-msg" id="username-msg"></div>
+
+    <!-- Email -->
+    <label for="email">Email *</label>
+    <input type="email" id="email" name="email"
+           placeholder="your@email.com"
+           required
+           oninput="validateField(this)">
+    <div class="validation-msg" id="email-msg"></div>
+
+    <!-- 密碼 -->
+    <label for="password">密碼 *（至少 8 字元，含數字）</label>
+    <input type="password" id="password" name="password"
+           placeholder="••••••••"
+           required minlength="8"
+           pattern="(?=.*\d).{8,}"
+           title="至少 8 個字元，且包含數字"
+           oninput="validateField(this)">
+    <div class="validation-msg" id="password-msg"></div>
+
+    <div class="grid-2">
+      <!-- 數字 -->
+      <div>
+        <label for="age">年齡</label>
+        <input type="number" id="age" name="age"
+               min="18" max="120" placeholder="18-120">
+      </div>
+
+      <!-- 日期 -->
+      <div>
+        <label for="birthday">生日</label>
+        <input type="date" id="birthday" name="birthday">
+      </div>
+    </div>
+
+    <!-- 電話 -->
+    <label for="phone">電話（格式：09xx-xxxxxx）</label>
+    <input type="tel" id="phone" name="phone"
+           pattern="09\d{2}-?\d{6}"
+           placeholder="0912-345678">
+
+    <!-- Checkbox（多選） -->
+    <fieldset>
+      <legend>興趣（多選）</legend>
+      <label><input type="checkbox" name="interests" value="frontend"> 前端開發</label>
+      <label><input type="checkbox" name="interests" value="backend"> 後端開發</label>
+      <label><input type="checkbox" name="interests" value="network"> 網路基礎</label>
+      <label><input type="checkbox" name="interests" value="design"> UI/UX 設計</label>
+    </fieldset>
+
+    <!-- Radio（單選） -->
+    <fieldset>
+      <legend>身份 *</legend>
+      <label><input type="radio" name="role" value="student" required> 學生</label>
+      <label><input type="radio" name="role" value="professional"> 在職人員</label>
+      <label><input type="radio" name="role" value="other"> 其他</label>
+    </fieldset>
+
+    <!-- Select 下拉選單 -->
+    <label for="level">技術等級</label>
+    <select id="level" name="level">
+      <option value="">請選擇...</option>
+      <option value="beginner">初學者</option>
+      <option value="intermediate">中級</option>
+      <option value="advanced">進階</option>
+    </select>
+
+    <!-- Datalist（文字框下拉建議） -->
+    <label for="language">主要語言</label>
+    <input type="text" id="language" name="language"
+           list="languages-list" placeholder="輸入或選擇...">
+    <datalist id="languages-list">
+      <option value="JavaScript">
+      <option value="TypeScript">
+      <option value="Python">
+      <option value="Go">
+      <option value="Rust">
+    </datalist>
+
+    <!-- Textarea -->
+    <label for="bio">自我介紹</label>
+    <textarea id="bio" name="bio" rows="4"
+              placeholder="簡短描述自己..." maxlength="500"></textarea>
+
+    <!-- 檔案上傳 -->
+    <label for="avatar">頭像</label>
+    <input type="file" id="avatar" name="avatar"
+           accept="image/*">
+
+    <!-- Hidden（隱藏欄位，傳給 Server 但不顯示） -->
+    <input type="hidden" name="form_version" value="2.0">
+    <input type="hidden" name="timestamp" id="timestamp">
+
+    <button type="submit">送出表單（POST）</button>
+    <button type="reset">重設</button>
+  </form>
+
+  <!-- 即時顯示表單資料 -->
+  <h3 style="color:#a0aec0; margin-top:20px;">即時表單資料（模擬 Request Body）：</h3>
+  <pre id="form-output">（填寫後送出查看）</pre>
+</div>
+
+<!-- ============================================================
+     Input 類型總覽
+============================================================ -->
+<h2>HTML5 Input 類型總覽</h2>
+<div class="card">
+  <table>
+    <tr><th>類型</th><th>用途</th><th>特別屬性</th></tr>
+    <tr><td><code>text</code></td><td>一般文字</td><td>minlength, maxlength, pattern</td></tr>
+    <tr><td><code>email</code></td><td>Email（瀏覽器自動驗證格式）</td><td>required</td></tr>
+    <tr><td><code>password</code></td><td>密碼（輸入自動遮蔽）</td><td>minlength, pattern</td></tr>
+    <tr><td><code>number</code></td><td>數字</td><td>min, max, step</td></tr>
+    <tr><td><code>date</code></td><td>日期選擇器</td><td>min, max</td></tr>
+    <tr><td><code>tel</code></td><td>電話（不驗證，需自訂 pattern）</td><td>pattern</td></tr>
+    <tr><td><code>checkbox</code></td><td>多選核取方塊</td><td>checked, value</td></tr>
+    <tr><td><code>radio</code></td><td>單選按鈕（同 name 為一組）</td><td>checked, value</td></tr>
+    <tr><td><code>file</code></td><td>檔案上傳</td><td>accept, multiple</td></tr>
+    <tr><td><code>hidden</code></td><td>不顯示但會送出的資料</td><td>value</td></tr>
+    <tr><td><code>range</code></td><td>滑桿</td><td>min, max, step</td></tr>
+    <tr><td><code>color</code></td><td>顏色選擇器</td><td>value (#hex)</td></tr>
+    <tr><td><code>submit</code></td><td>送出按鈕</td><td>formaction（覆寫 action）</td></tr>
+    <tr><td><code>reset</code></td><td>重設所有欄位</td><td>—</td></tr>
+  </table>
+</div>
+
+<script>
+  // 設定 hidden 欄位的時間戳
+  document.getElementById('timestamp').value = new Date().toISOString();
+
+  // 即時驗證
+  function validateField(input) {
+    const msgEl = document.getElementById(`${input.id}-msg`);
+    if (!msgEl) return;
+    if (input.validity.valid) {
+      msgEl.textContent = '✓ 格式正確';
+      msgEl.className = 'validation-msg valid-msg';
+    } else {
+      msgEl.textContent = getValidationMessage(input);
+      msgEl.className = 'validation-msg invalid-msg';
+    }
+  }
+
+  function getValidationMessage(input) {
+    const v = input.validity;
+    if (v.valueMissing)   return '此欄位為必填';
+    if (v.tooShort)       return `至少需要 ${input.minLength} 個字元`;
+    if (v.tooLong)        return `最多 ${input.maxLength} 個字元`;
+    if (v.typeMismatch)   return '格式不正確';
+    if (v.patternMismatch) return input.title || '格式不符規定';
+    if (v.rangeUnderflow) return `最小值為 ${input.min}`;
+    if (v.rangeOverflow)  return `最大值為 ${input.max}`;
+    return '輸入有誤';
+  }
+
+  // 處理表單送出
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    const form = document.getElementById('demo-form');
+    const data = new FormData(form);
+    const obj = {};
+
+    for (const [key, value] of data.entries()) {
+      if (obj[key]) {
+        obj[key] = Array.isArray(obj[key]) ? [...obj[key], value] : [obj[key], value];
+      } else {
+        obj[key] = value;
+      }
+    }
+
+    // 模擬送出（實際的 POST 請求會帶 Content-Type: application/x-www-form-urlencoded）
+    document.getElementById('form-output').textContent =
+      'POST /api/register HTTP/1.1\n' +
+      'Content-Type: application/x-www-form-urlencoded\n\n' +
+      JSON.stringify(obj, null, 2);
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSS Box Model</title>
+  <style>
+    /* CSS 變數：宣告在 :root，全域可用 */
+    :root {
+      --color-bg: #0f1117;
+      --color-surface: #1a202c;
+      --color-border: #2d3748;
+      --color-text: #e2e8f0;
+      --color-muted: #a0aec0;
+      --color-accent: #63b3ed;
+      --color-green: #68d391;
+      --color-yellow: #f6e05e;
+      --color-red: #fc8181;
+      --spacing-base: 16px;
+      /* calc() 示範：動態計算寬度 */
+      --sidebar-width: calc(100% - 200px);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: monospace;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: var(--spacing-base);
+      background: var(--color-bg);
+      color: var(--color-text);
+    }
+    h1 { color: var(--color-accent); }
+    h2 { color: var(--color-green); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; margin-top: 32px; }
+    .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; padding: var(--spacing-base); margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid var(--color-border); padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: var(--color-yellow); font-size: 0.9em; }
+    pre { background: #171923; padding: 12px; border-radius: 6px; color: var(--color-muted); overflow-x: auto; line-height: 1.6; }
+    button { background: #3182ce; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin: 4px; font-family: monospace; }
+    button:hover { background: #2b6cb0; }
+    label { color: var(--color-muted); font-size: 0.85em; }
+    input[type=range] { width: 100%; accent-color: var(--color-accent); }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+    th { color: var(--color-muted); font-weight: normal; background: #171923; }
+  </style>
+</head>
+<body>
+
+<h1>CSS Box Model</h1>
+<p class="comment">來源：css_raw.txt｜所有 HTML 元素都是一個「盒子」，由 content / padding / border / margin 組成</p>
+
+<!-- ============================================================
+     Box Model 互動視覺化
+============================================================ -->
+<h2>Box Model 視覺化</h2>
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+    <!-- 視覺化盒子 -->
+    <div>
+      <div id="box-visual" style="
+        position:relative; display:inline-block;
+        background: #2d1b69;   /* margin 區域 */
+        padding: 30px;
+      ">
+        <span style="position:absolute; top:4px; left:4px; font-size:0.65em; color:#c4b5fd;">margin</span>
+        <div id="border-box" style="
+          background: #744210;  /* border 區域 */
+          padding: 20px;
+          border: 6px solid #f6ad55;
+        ">
+          <span style="position:absolute; font-size:0.65em; color:#f6ad55; top:34px; left:34px;">border</span>
+          <div id="padding-box" style="
+            background: #276749;  /* padding 區域 */
+            padding: 20px;
+          ">
+            <span style="position:absolute; font-size:0.65em; color:#9ae6b4;">padding</span>
+            <div id="content-box" style="
+              background: #1a365d;
+              width: 100px; height: 60px;
+              display:flex; align-items:center; justify-content:center;
+              color: #90cdf4; font-size:0.8em;
+              border: 1px dashed #4a90d9;
+            ">content</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 控制滑桿 -->
+    <div>
+      <label>margin: <span id="margin-val">30</span>px</label>
+      <input type="range" min="0" max="50" value="30" oninput="updateBox('margin', this.value)">
+
+      <label style="margin-top:8px; display:block;">border: <span id="border-val">6</span>px</label>
+      <input type="range" min="0" max="20" value="6" oninput="updateBox('border', this.value)">
+
+      <label style="margin-top:8px; display:block;">padding: <span id="padding-val">20</span>px</label>
+      <input type="range" min="0" max="40" value="20" oninput="updateBox('padding', this.value)">
+
+      <label style="margin-top:8px; display:block;">content width: <span id="width-val">100</span>px</label>
+      <input type="range" min="40" max="200" value="100" oninput="updateBox('width', this.value)">
+
+      <div style="margin-top:12px;" class="comment">
+        <div>拖動滑桿觀察各層如何影響整體尺寸</div>
+        <div id="total-size" style="margin-top:6px; color:var(--color-green);"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     content-box vs border-box
+============================================================ -->
+<h2>box-sizing: content-box vs border-box</h2>
+<div class="card">
+  <p class="comment">
+    <code>content-box</code>（預設）：width 只計算內容，加上 padding/border 後總寬度會增大<br>
+    <code>border-box</code>（推薦）：width 包含 padding/border，總寬度固定不變
+  </p>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div>
+      <div style="color:#fc8181; font-size:0.9em; margin-bottom:6px;">content-box（預設）</div>
+      <!-- width:200px 但加上 padding:20px + border:4px 後總寬 = 248px -->
+      <div style="
+        box-sizing:content-box;
+        width:160px; padding:20px; border:4px solid #fc8181;
+        background:#2d1b1b; color:#fc8181; font-size:0.8em;
+        text-align:center;
+      ">
+        width: 160px<br>
+        <small>+pad:20px+border:4px</small><br>
+        <small>= 實際 208px</small>
+      </div>
+    </div>
+    <div>
+      <div style="color:#68d391; font-size:0.9em; margin-bottom:6px;">border-box（推薦）</div>
+      <!-- width:200px，padding/border 都算在裡面，總寬恆為 200px -->
+      <div style="
+        box-sizing:border-box;
+        width:208px; padding:20px; border:4px solid #68d391;
+        background:#1a2f1a; color:#68d391; font-size:0.8em;
+        text-align:center;
+      ">
+        width: 208px<br>
+        <small>pad+border 算在內</small><br>
+        <small>= 實際 208px ✓</small>
+      </div>
+    </div>
+  </div>
+  <pre style="margin-top:12px;">/* 最佳實踐：全域套用 border-box */
+*, *::before, *::after {
+  box-sizing: border-box;
+}</pre>
+</div>
+
+<!-- ============================================================
+     Display 屬性
+============================================================ -->
+<h2>Display 屬性比較</h2>
+<div class="card">
+  <table>
+    <tr><th>值</th><th>行為</th><th>可設 width/height？</th><th>典型使用</th></tr>
+    <tr><td><code>block</code></td><td>獨佔一整行</td><td>✅</td><td>div, p, h1-h6</td></tr>
+    <tr><td><code>inline</code></td><td>跟著文字流，不換行</td><td>❌</td><td>span, a, em, strong</td></tr>
+    <tr><td><code>inline-block</code></td><td>跟著文字流，但可設尺寸</td><td>✅</td><td>按鈕、圖示</td></tr>
+    <tr><td><code>flex</code></td><td>彈性容器（一維排版）</td><td>✅</td><td>導覽列、卡片排列</td></tr>
+    <tr><td><code>grid</code></td><td>網格容器（二維排版）</td><td>✅</td><td>整體版面</td></tr>
+    <tr><td><code>none</code></td><td>完全消失，不佔空間</td><td>—</td><td>隱藏元素</td></tr>
+  </table>
+  <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:baseline;">
+    <span style="background:#2d3748; padding:4px 8px; font-size:0.8em;">block：獨佔一行</span>
+    <span style="background:#276749; display:inline-block; padding:4px 8px; font-size:0.8em; width:120px;">inline-block</span>
+    <span style="background:#1a365d; display:inline; padding:4px 8px; font-size:0.8em;">inline 無寬度</span>
+    <span style="background:#276749; display:inline-block; padding:4px 8px; font-size:0.8em;">inline-block</span>
+  </div>
+  <p class="comment">visibility:hidden 讓元素不可見但佔空間；display:none 完全移除且不佔空間</p>
+</div>
+
+<!-- ============================================================
+     置中方法
+============================================================ -->
+<h2>置中技巧</h2>
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+
+    <!-- margin auto -->
+    <div>
+      <div style="color:#a0aec0; font-size:0.8em; margin-bottom:6px;">margin: 0 auto</div>
+      <div style="background:#2d3748; padding:8px; height:80px; display:flex; align-items:flex-start;">
+        <div style="
+          background:#1a365d; border:1px solid #63b3ed;
+          width:60px; padding:8px;
+          margin:0 auto;  /* 水平置中，需要 display:block */
+          font-size:0.75em; text-align:center; color:#90cdf4;
+        ">水平</div>
+      </div>
+      <pre style="font-size:0.7em; margin-top:4px;">.box {
+  width: 60px;
+  margin: 0 auto;
+}</pre>
+    </div>
+
+    <!-- flexbox -->
+    <div>
+      <div style="color:#a0aec0; font-size:0.8em; margin-bottom:6px;">flexbox</div>
+      <div style="
+        background:#2d3748; padding:8px; height:80px;
+        display:flex; align-items:center; justify-content:center;
+      ">
+        <div style="
+          background:#1a4731; border:1px solid #68d391;
+          padding:8px; font-size:0.75em; text-align:center; color:#9ae6b4;
+        ">水平+垂直</div>
+      </div>
+      <pre style="font-size:0.7em; margin-top:4px;">.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}</pre>
+    </div>
+
+    <!-- position -->
+    <div>
+      <div style="color:#a0aec0; font-size:0.8em; margin-bottom:6px;">position absolute</div>
+      <div style="background:#2d3748; padding:8px; height:80px; position:relative;">
+        <div style="
+          background:#2d1b69; border:1px solid #9f7aea;
+          padding:8px; font-size:0.75em; text-align:center; color:#c4b5fd;
+          position:absolute; top:50%; left:50%;
+          transform:translate(-50%, -50%);
+          white-space:nowrap;
+        ">水平+垂直</div>
+      </div>
+      <pre style="font-size:0.7em; margin-top:4px;">.box {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(
+    -50%, -50%);
+}</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CSS 變數 + 函式
+============================================================ -->
+<h2>CSS 變數 + 函式</h2>
+<div class="card">
+  <pre>/* 宣告 CSS 變數 */
+:root {
+  --primary: #3182ce;
+  --spacing: 16px;
+}
+
+/* 使用 CSS 變數 */
+.button {
+  background: var(--primary);
+  padding: var(--spacing);
+}
+
+/* calc()：混合單位計算 */
+.sidebar { width: calc(100% - 240px); }
+
+/* min() / max() / clamp() */
+.text   { font-size: max(14px, 2vw); }         /* 至少 14px */
+.image  { width: min(100%, 600px); }            /* 最多 600px */
+.title  { font-size: clamp(16px, 4vw, 32px); } /* 16~32px 之間 */</pre>
+
+  <div style="margin-top:12px;">
+    <label>clamp() 示範（調整視窗大小看效果）：</label>
+    <div style="
+      font-size: clamp(14px, 3vw, 28px);
+      color: var(--color-green);
+      margin-top:6px;
+    ">這段文字使用 clamp(14px, 3vw, 28px)，在 14px 和 28px 之間自動縮放</div>
+  </div>
+</div>
+
+<script>
+  function updateBox(prop, val) {
+    document.getElementById(`${prop}-val`).textContent = val;
+    const vis = document.getElementById('box-visual');
+    const borderBox = document.getElementById('border-box');
+    const paddingBox = document.getElementById('padding-box');
+    const contentBox = document.getElementById('content-box');
+
+    if (prop === 'margin')  vis.style.padding = `${val}px`;
+    if (prop === 'border')  borderBox.style.border = `${val}px solid #f6ad55`;
+    if (prop === 'padding') paddingBox.style.padding = `${val}px`;
+    if (prop === 'width')   contentBox.style.width = `${val}px`;
+
+    // 計算總寬
+    const m = parseInt(document.getElementById('margin-val').textContent);
+    const b = parseInt(document.getElementById('border-val').textContent);
+    const p = parseInt(document.getElementById('padding-val').textContent);
+    const w = parseInt(document.getElementById('width-val').textContent);
+    const total = w + p * 2 + b * 2 + m * 2;
+    document.getElementById('total-size').textContent =
+      `總寬 = ${w}(content) + ${p*2}(padding×2) + ${b*2}(border×2) + ${m*2}(margin×2) = ${total}px`;
+  }
+  updateBox('margin', 30); // 初始化計算
+</script>
+
+</body>
+</html>

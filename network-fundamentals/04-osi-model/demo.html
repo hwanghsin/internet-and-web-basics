@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<!--
+  ==========================================
+  網路概念：OSI 七層模型
+  OSI 層：所有七層（L1-L7）
+  說明：這個 HTML 文件本身就是各 OSI 層的縮影：
+        - 這個 HTML 文件 = L7 應用層的資料
+        - charset=UTF-8 = L6 展示層（編碼/翻譯）
+        - HTTPS 連線 = L6 展示層（加密）
+        - TCP 連線 = L4 傳輸層
+        - IP 路由 = L3 網路層
+        - 網路卡 = L2 資料連結層
+        - 網路線/Wi-Fi 訊號 = L1 實體層
+  ==========================================
+-->
+<html lang="zh-TW">
+<head>
+  <!--
+    網路概念：Content-Type: text/html; charset=UTF-8
+    OSI 層：L6 展示層（Presentation Layer）
+    說明：展示層負責資料格式的轉換。
+          瀏覽器收到位元組後，
+          依 charset=UTF-8 把位元組解碼成人類看得到的文字。
+          這就是 L6 的工作：「翻譯」。
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSI 七層模型 Demo</title>
+  <!--
+    網路概念：外部 CSS 檔案載入
+    OSI 層：L7 應用層（HTTP 請求）→ L1 實體層（傳輸）
+    說明：這個 <style> 標籤是 inline CSS，不發出 HTTP 請求。
+          如果改成 <link href="style.css"> 就需要再發一次 HTTP 請求，
+          從 L7 走到 L1 取回 CSS 檔案。
+          internet_raw.txt：「引用的css或js檔越少，回傳效能就越高。」
+  -->
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 8px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    button { background: #3182ce; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 4px; }
+    button:hover { background: #2b6cb0; }
+
+    /* OSI 層的顏色系統 */
+    .l7 { background: #2d1b69; border-left: 4px solid #9f7aea; }
+    .l6 { background: #1a3a5c; border-left: 4px solid #63b3ed; }
+    .l5 { background: #1a4a5c; border-left: 4px solid #76e4f7; }
+    .l4 { background: #1a4731; border-left: 4px solid #68d391; }
+    .l3 { background: #744210; border-left: 4px solid #f6ad55; }
+    .l2 { background: #742a2a; border-left: 4px solid #fc8181; }
+    .l1 { background: #2d3748; border-left: 4px solid #a0aec0; }
+
+    .layer-row { padding: 12px 16px; margin: 3px 0; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+    .layer-row:hover { filter: brightness(1.3); }
+    .layer-row.active { filter: brightness(1.4); }
+    .layer-num { font-weight: bold; font-size: 1.1em; display: inline-block; width: 30px; }
+    .layer-name { display: inline-block; width: 180px; }
+    .layer-pdu { display: inline-block; width: 90px; color: #a0aec0; font-size: 0.9em; }
+    .layer-detail { margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; display: none; font-size: 0.9em; }
+    .layer-row.active .layer-detail { display: block; }
+
+    .packet-frame { display: flex; align-items: stretch; margin: 8px 0; font-size: 0.8em; }
+    .packet-part { padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; }
+    .packet-eth   { background: #742a2a; flex: 1.2; }
+    .packet-ip    { background: #744210; flex: 1; }
+    .packet-tcp   { background: #1a4731; flex: 1; }
+    .packet-http  { background: #2d1b69; flex: 1.5; }
+    .packet-fcs   { background: #4a5568; flex: 0.5; }
+    .arrow { font-size: 1.5em; color: #4a5568; margin: 0 8px; display: flex; align-items: center; }
+    pre { background: #171923; padding: 12px; border-radius: 6px; color: #a0aec0; font-size: 0.85em; overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+<h1>OSI 七層模型 Demo</h1>
+
+<!--
+  網路概念：OSI 七層整體架構
+  說明：這個互動面板讓你點選各層，看到該層的功能說明。
+        注意：這個 HTML 文件在網路上傳輸時，
+        就完整走過了以下所有七層。
+-->
+<h2>互動式 OSI 七層</h2>
+<div class="card">
+  <p class="comment">點選任一層查看詳細說明</p>
+  <div id="osi-layers"></div>
+</div>
+
+<!--
+  網路概念：封裝（Encapsulation）- 俄羅斯娃娃
+  OSI 層：L2-L7（每層加上 header）
+  說明：資料從 L7 向下，每層套上一個 header。
+        最終在 L1 以 0 與 1 位元傳輸。
+        接收端反向拆解，從 L1 到 L7 還原資料。
+-->
+<h2>封裝（Encapsulation）可視化</h2>
+<div class="card">
+  <p class="comment">一個 HTTP GET 請求在發出時的封包結構</p>
+  <button onclick="animateEncapsulation()">▶ 展示封裝過程</button>
+  <div id="encap-steps" style="margin-top: 12px;"></div>
+  <div id="final-packet" style="margin-top: 16px;"></div>
+</div>
+
+<!--
+  網路概念：各設備處理層級
+  OSI 層：L1（網路線）到 L7（電腦）
+  說明：不同網路設備只處理自己關心的層，
+        不會無謂地解析上層資料，這是分工合作的精妙之處。
+-->
+<h2>設備 × 層級對應</h2>
+<div class="card">
+  <div id="device-layers"></div>
+</div>
+
+<!--
+  網路概念：前端工程師的 OSI 視角
+  OSI 層：L5-L7（前端最常接觸的層）
+  說明：前端雖然不用設定路由器，但每天的工作
+        都和 L5-L7 密切相關。
+-->
+<h2>前端工程師 × OSI</h2>
+<div class="card">
+  <div id="frontend-osi"></div>
+</div>
+
+<script>
+  // ==========================================
+  // OSI 七層資料
+  // ==========================================
+  const layers = [
+    {
+      num: 7, name: 'Application（應用層）', pdu: 'Data',
+      cls: 'l7',
+      protocols: 'HTTP, HTTPS, FTP, SMTP, DNS',
+      desc: '你看到的網頁、App、Line 的介面。你寫的每一行 fetch() 都在這層。',
+      frontend: '最直接！fetch(), axios, REST API, status codes 全在這層。',
+      example: 'GET /index.html HTTP/1.1\nHost: example.com'
+    },
+    {
+      num: 6, name: 'Presentation（展示層）', pdu: 'Data',
+      cls: 'l6',
+      protocols: 'SSL/TLS, UTF-8, JPEG, GZIP',
+      desc: '負責資料格式的翻譯、加密、壓縮。確保對方看得懂。',
+      frontend: 'JSON.parse() / JSON.stringify()、HTTPS 的 TLS 加密、charset=UTF-8',
+      example: '加密：TLS 握手\n編碼：UTF-8 → 位元組\n壓縮：gzip 壓縮 HTML'
+    },
+    {
+      num: 5, name: 'Session（會話層）', pdu: 'Data',
+      cls: 'l5',
+      protocols: 'Session, Cookie, WebSocket',
+      desc: '建立、管理、終止兩台電腦之間的對話（Session）。',
+      frontend: 'Cookie 存登入狀態、JWT token、CORS 的 preflight 請求在這層做安全檢查。',
+      example: 'Set-Cookie: session_id=abc123; HttpOnly\nAccess-Control-Allow-Origin: *'
+    },
+    {
+      num: 4, name: 'Transport（傳輸層）', pdu: 'Segment',
+      cls: 'l4',
+      protocols: 'TCP, UDP',
+      desc: '端對端的資料傳輸。TCP 保證送到（掛號信），UDP 求快（平信）。',
+      frontend: 'HTTP/1.1 vs HTTP/2（多路復用）vs HTTP/3（QUIC/UDP）。WebSocket 也在這層。',
+      example: 'TCP 三向握手：SYN → SYN-ACK → ACK\n來源 Port: 54321  目的 Port: 443'
+    },
+    {
+      num: 3, name: 'Network（網路層）', pdu: 'Packet',
+      cls: 'l3',
+      protocols: 'IP, ICMP / Router',
+      desc: '決定封包的路徑（路由）。路由器看 IP 位址決定封包往哪走。',
+      frontend: '公有/私有 IP、NAT、CDN 把伺服器擺近使用者（降低 L3 延遲）。',
+      example: '來源 IP: 192.168.1.10\n目的 IP: 142.250.190.46'
+    },
+    {
+      num: 2, name: 'Data Link（資料連結層）', pdu: 'Frame',
+      cls: 'l2',
+      protocols: 'Ethernet, Wi-Fi / Switch',
+      desc: '區域網路內的點對點傳輸。交換器看 MAC 位址轉發封包。',
+      frontend: '通常不直接接觸，但 WebRTC（P2P 視訊）會涉及到。',
+      example: '來源 MAC: 00:0c:29:4f:aa:bb\n目的 MAC: b8:27:eb:cc:dd:ee'
+    },
+    {
+      num: 1, name: 'Physical（實體層）', pdu: 'Bit',
+      cls: 'l1',
+      protocols: '網路線, 光纖, Wi-Fi 訊號',
+      desc: '真正的 0 與 1 電子訊號傳輸。「Layer 1 斷了」= 網路線掉了。',
+      frontend: '你看不到這層。但 Wi-Fi 訊號弱就是 L1 問題。',
+      example: '01001000 01100101 01101100 01101100 01101111\n（Hello 的 ASCII 二進位）'
+    },
+  ];
+
+  // 渲染 OSI 層列表
+  const layerContainer = document.getElementById('osi-layers');
+  layers.forEach(l => {
+    const div = document.createElement('div');
+    div.className = `layer-row ${l.cls}`;
+    div.onclick = () => div.classList.toggle('active');
+    div.innerHTML = `
+      <span class="layer-num">L${l.num}</span>
+      <span class="layer-name">${l.name}</span>
+      <span class="layer-pdu">[${l.pdu}]</span>
+      <span style="color:#a0aec0; font-size:0.85em;">${l.protocols}</span>
+      <div class="layer-detail">
+        <strong>功能：</strong>${l.desc}<br>
+        <strong>前端關聯：</strong><span style="color:#68d391;">${l.frontend}</span><br>
+        <pre style="margin-top:6px; font-size:0.8em;">${l.example}</pre>
+      </div>
+    `;
+    layerContainer.appendChild(div);
+  });
+
+  // ==========================================
+  // 封裝動畫
+  // 網路概念：Encapsulation（L2-L7）
+  // ==========================================
+  function animateEncapsulation() {
+    const container = document.getElementById('encap-steps');
+    const finalPacket = document.getElementById('final-packet');
+    container.innerHTML = '';
+    finalPacket.innerHTML = '';
+
+    const steps = [
+      { label: 'L7 應用層', content: 'GET /index.html HTTP/1.1\nHost: example.com', cls: 'l7' },
+      { label: 'L4 傳輸層加上 TCP Header', content: '[TCP: Src:54321 Dst:443 SEQ:001] + HTTP Data', cls: 'l4' },
+      { label: 'L3 網路層加上 IP Header', content: '[IP: Src:192.168.1.10 Dst:142.250.190.46] + TCP + HTTP', cls: 'l3' },
+      { label: 'L2 資料連結層加上 Ethernet Header + FCS', content: '[Eth: SrcMAC:00:0c... DstMAC:b8:27...] + IP + TCP + HTTP + [FCS]', cls: 'l2' },
+      { label: 'L1 實體層：轉成 0 與 1 傳輸', content: '01001000 01100101 01101100 01101100 01101111 00100000...', cls: 'l1' },
+    ];
+
+    steps.forEach((s, i) => {
+      setTimeout(() => {
+        const div = document.createElement('div');
+        div.className = `card ${s.cls}`;
+        div.style.opacity = '0';
+        div.style.transition = 'opacity 0.3s';
+        div.innerHTML = `<strong>${s.label}</strong><pre style="margin-top:6px; font-size:0.8em;">${s.content}</pre>`;
+        container.appendChild(div);
+        setTimeout(() => div.style.opacity = '1', 50);
+
+        if (i === steps.length - 1) {
+          setTimeout(() => {
+            finalPacket.innerHTML = `
+              <div class="card">
+                <div style="margin-bottom:8px; color:#a0aec0;">最終封包結構（俄羅斯娃娃）：</div>
+                <div class="packet-frame">
+                  <div class="packet-eth packet-part">Eth<br>Header<br><small>L2</small></div>
+                  <div class="packet-ip packet-part">IP<br>Header<br><small>L3</small></div>
+                  <div class="packet-tcp packet-part">TCP<br>Header<br><small>L4</small></div>
+                  <div class="packet-http packet-part">HTTP Data<br><small>L7</small></div>
+                  <div class="packet-fcs packet-part">FCS<br><small>L2</small></div>
+                </div>
+                <div class="comment">路由器只拆到 IP Header（L3）就夠了；交換器只看 Eth Header（L2）。你的電腦要拆到最裡面的 HTTP Data（L7）。</div>
+              </div>
+            `;
+          }, 300);
+        }
+      }, i * 700);
+    });
+  }
+
+  // ==========================================
+  // 設備 × 層級對應
+  // ==========================================
+  const devices = [
+    { name: '你的電腦', emoji: '💻', maxLayer: 7, desc: '發送端完整封裝 L7→L1，接收端完整解封裝 L1→L7' },
+    { name: '路由器', emoji: '🔀', maxLayer: 3, desc: '看 IP 位址決定路由，不管 HTTP 內容是什麼' },
+    { name: '交換器', emoji: '🔌', maxLayer: 2, desc: '看 MAC 位址在 LAN 內轉發，不管 IP' },
+    { name: '網路線/Wi-Fi', emoji: '📡', maxLayer: 1, desc: '只傳 0 與 1 電訊號，什麼都不管' },
+  ];
+
+  const layerColors = { 7:'#9f7aea', 6:'#63b3ed', 5:'#76e4f7', 4:'#68d391', 3:'#f6ad55', 2:'#fc8181', 1:'#a0aec0' };
+
+  const deviceContainer = document.getElementById('device-layers');
+  devices.forEach(d => {
+    const bars = Array.from({length: 7}, (_, i) => {
+      const layerNum = 7 - i;
+      const active = layerNum <= d.maxLayer;
+      return `<div style="flex:1; height:28px; background:${active ? layerColors[layerNum] : '#2d3748'}; opacity:${active ? 1 : 0.3}; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:0.75em; color:${active ? '#0f1117' : '#4a5568'}; font-weight:bold;">L${layerNum}</div>`;
+    }).join('');
+
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.marginBottom = '8px';
+    div.innerHTML = `
+      <div style="display:flex; gap:12px; align-items:center;">
+        <div style="font-size:1.8em; flex-shrink:0;">${d.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-weight:bold;">${d.name}</div>
+          <div style="display:flex; gap:3px; margin:4px 0;">${bars}</div>
+          <div style="color:#a0aec0; font-size:0.85em;">${d.desc}</div>
+        </div>
+      </div>
+    `;
+    deviceContainer.appendChild(div);
+  });
+
+  // ==========================================
+  // 前端工程師的 OSI 視角
+  // ==========================================
+  const frontendItems = [
+    { layer: 'L7', color: '#9f7aea', title: 'fetch() / axios / REST API', body: '每次呼叫 API 就是一次 L7 的 HTTP 請求。Status codes（200/404/500）都在這裡。' },
+    { layer: 'L6', color: '#63b3ed', title: 'JSON, charset, TLS/HTTPS', body: 'JSON.stringify() 是 L6 序列化；HTTPS 的加密是 L6 的 TLS；網頁亂碼是 charset 設錯。' },
+    { layer: 'L5', color: '#76e4f7', title: 'Cookie, JWT, CORS', body: '登入狀態靠 Cookie 或 JWT 維持（L5 Session）。CORS 是瀏覽器在 L5 做的安全檢查。' },
+    { layer: 'L4', color: '#68d391', title: 'HTTP/2 多路復用, WebSocket', body: 'HTTP/2 解決了 TCP 連線數限制（L4）。WebSocket 是在 L4 建立持久全雙工連線。' },
+  ];
+
+  const feContainer = document.getElementById('frontend-osi');
+  frontendItems.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.borderLeft = `4px solid ${item.color}`;
+    div.style.marginBottom = '8px';
+    div.innerHTML = `
+      <span style="color:${item.color}; font-weight:bold;">${item.layer}</span>
+      <strong style="margin-left:8px;">${item.title}</strong>
+      <div style="color:#a0aec0; margin-top:6px; font-size:0.9em;">${item.body}</div>
+    `;
+    feContainer.appendChild(div);
+  });
+</script>
+
+</body>
+</html>

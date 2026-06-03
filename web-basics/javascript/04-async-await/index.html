@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>非同步：Async / Await</title>
+  <style>
+    :root { --bg:#0f1117; --surface:#1a202c; --border:#2d3748; --text:#e2e8f0; --muted:#a0aec0; --accent:#63b3ed; --green:#68d391; --yellow:#f6e05e; --red:#fc8181; --purple:#9f7aea; }
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; background: var(--bg); color: var(--text); }
+    h1 { color: var(--accent); }
+    h2 { color: var(--green); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-top: 32px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid var(--border); padding-left: 12px; margin: 8px 0; }
+    code { background: #2d3748; padding: 2px 6px; border-radius: 4px; color: var(--yellow); font-size: 0.9em; }
+    pre { background: #171923; padding: 10px; border-radius: 6px; color: var(--muted); font-size: 0.82em; overflow-x: auto; line-height: 1.6; }
+    button { background: #3182ce; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; margin: 3px; font-family: monospace; font-size: 0.9em; }
+    button:hover { background: #2b6cb0; }
+    button:disabled { background: #4a5568; cursor: not-allowed; }
+    .log { background: #171923; border: 1px solid var(--border); border-radius: 6px; padding: 10px; min-height: 50px; max-height: 200px; overflow-y: auto; font-size: 0.82em; }
+    .t0 { color: #a0aec0; }
+    .t1 { color: var(--accent); }
+    .t2 { color: var(--green); }
+    .t3 { color: var(--yellow); }
+    .t4 { color: var(--purple); }
+    .t-err { color: var(--red); }
+    .t-ok  { color: var(--green); font-weight: bold; }
+    .timeline { display: flex; flex-direction: column; gap: 3px; padding: 8px; background: #171923; border-radius: 6px; }
+    .tl-row { display: flex; align-items: center; gap: 6px; font-size: 0.8em; }
+    .tl-label { width: 80px; flex-shrink: 0; color: var(--muted); }
+    .tl-bar { height: 18px; border-radius: 3px; display: flex; align-items: center; padding: 0 6px; font-size: 0.75em; min-width: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9em; }
+    th { color: var(--muted); font-weight: normal; background: #171923; }
+  </style>
+</head>
+<body>
+
+<h1>非同步：Async / Await</h1>
+<p class="comment">來源：js_raw.txt｜從 Callback → Promise → async/await 的演進，以及 Promise 組合方法</p>
+
+<!-- ============================================================
+     演進史：Callback → Promise → async/await
+============================================================ -->
+<h2>演進史</h2>
+<div class="card">
+  <pre>// ❶ Callback（回調地獄 Callback Hell）
+fetchUser(userId, function(user) {
+  fetchOrders(user.id, function(orders) {
+    fetchProduct(orders[0].productId, function(product) {
+      console.log(product);           // 三層巢狀，越來越難維護
+    }, handleError);
+  }, handleError);
+}, handleError);
+
+
+// ❷ Promise 鏈（.then() 扁平化）
+fetchUser(userId)
+  .then(user    => fetchOrders(user.id))
+  .then(orders  => fetchProduct(orders[0].productId))
+  .then(product => console.log(product))
+  .catch(err    => console.error(err));  // 統一錯誤處理
+
+
+// ❸ async/await（最易讀，語法糖包裝 Promise）
+async function loadProduct(userId) {
+  try {
+    const user    = await fetchUser(userId);
+    const orders  = await fetchOrders(user.id);
+    const product = await fetchProduct(orders[0].productId);
+    console.log(product);
+  } catch (err) {
+    console.error('流程中斷：', err.message);
+  } finally {
+    console.log('無論成功失敗都執行');
+  }
+}</pre>
+</div>
+
+<!-- ============================================================
+     async/await 執行順序視覺化
+============================================================ -->
+<h2>async/await 執行順序</h2>
+<div class="card">
+  <p class="comment">await 會暫停目前 async function，讓主執行緒繼續跑其他同步程式碼</p>
+  <button onclick="runOrderDemo()">▶ 執行順序示範</button>
+  <button onclick="clearLog('order-log')" style="background:#4a5568;">清除</button>
+  <div id="order-log" class="log" style="margin-top:8px;"></div>
+  <pre style="margin-top:10px;">console.log('1. 同步開始');
+
+async function run() {
+  console.log('2. async function 開始');
+  const result = await delay(500);   // 暫停 async，讓出主執行緒
+  console.log('4. await 結束，result =', result);
+}
+
+run();  // 開始執行但遇到 await 就暫停
+console.log('3. 同步繼續（async 暫停中）');
+// 輸出順序：1 → 2 → 3 → 4</pre>
+</div>
+
+<!-- ============================================================
+     Promise 並行 vs 循序
+============================================================ -->
+<h2>並行（Parallel）vs 循序（Sequential）</h2>
+<div class="card">
+  <p class="comment">多個非同步操作時，選對方式可以大幅縮短等待時間</p>
+
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+    <button onclick="runSequential()">▶ 循序執行（慢）</button>
+    <button onclick="runParallel()">▶ Promise.all 並行（快）</button>
+    <button onclick="clearLog('parallel-log')" style="background:#4a5568;">清除</button>
+  </div>
+  <div id="parallel-log" class="log"></div>
+  <div id="parallel-timeline" style="margin-top:10px;"></div>
+
+  <pre style="margin-top:10px;">// ❌ 循序（total = A + B + C 的時間）
+const a = await fetchA();   // 等 1s
+const b = await fetchB();   // 再等 1s
+const c = await fetchC();   // 再等 1s  → 共 3s
+
+// ✅ Promise.all 並行（total = max(A, B, C) 的時間）
+const [a, b, c] = await Promise.all([
+  fetchA(),   // 同時開始
+  fetchB(),   // 同時開始
+  fetchC(),   // 同時開始
+]);  // → 共約 1s（最慢那個）</pre>
+</div>
+
+<!-- ============================================================
+     Promise 靜態方法
+============================================================ -->
+<h2>Promise 靜態方法比較</h2>
+<div class="card">
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+    <button onclick="runPromiseAll()">Promise.all</button>
+    <button onclick="runPromiseAllSettled()">Promise.allSettled</button>
+    <button onclick="runPromiseRace()">Promise.race</button>
+    <button onclick="runPromiseAny()">Promise.any</button>
+    <button onclick="clearLog('promise-log')" style="background:#4a5568;">清除</button>
+  </div>
+  <div id="promise-log" class="log"></div>
+
+  <table style="margin-top:12px;">
+    <tr><th>方法</th><th>何時 resolve</th><th>何時 reject</th><th>用途</th></tr>
+    <tr>
+      <td><code>Promise.all</code></td>
+      <td>全部成功</td>
+      <td>任一失敗就立刻 reject</td>
+      <td>全部都需要才能繼續（如同時載入必要資源）</td>
+    </tr>
+    <tr>
+      <td><code>Promise.allSettled</code></td>
+      <td>全部完成（不管成敗）</td>
+      <td>永不 reject</td>
+      <td>需要知道每個結果（如批次操作）</td>
+    </tr>
+    <tr>
+      <td><code>Promise.race</code></td>
+      <td>第一個完成（不管成敗）</td>
+      <td>第一個失敗</td>
+      <td>超時控制（timeout race）</td>
+    </tr>
+    <tr>
+      <td><code>Promise.any</code></td>
+      <td>第一個成功</td>
+      <td>全部都失敗</td>
+      <td>選最快的成功（多個備援 API）</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============================================================
+     錯誤處理
+============================================================ -->
+<h2>錯誤處理：try / catch / finally</h2>
+<div class="card">
+  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+    <button onclick="runErrorDemo('success')">✅ 成功路徑</button>
+    <button onclick="runErrorDemo('network')">❌ 網路錯誤</button>
+    <button onclick="runErrorDemo('http')">❌ HTTP 4xx</button>
+    <button onclick="runErrorDemo('json')">❌ JSON 解析失敗</button>
+    <button onclick="clearLog('error-log')" style="background:#4a5568;">清除</button>
+  </div>
+  <div id="error-log" class="log"></div>
+
+  <pre style="margin-top:10px;">async function safeFetch(url) {
+  try {
+    const response = await fetch(url);
+
+    // ① fetch 的特性：HTTP 4xx/5xx 不會 throw
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status}`);
+    }
+
+    // ② JSON 解析失敗也要捕獲
+    const data = await response.json();
+    return data;
+
+  } catch (err) {
+    if (err instanceof TypeError) {
+      console.error('網路錯誤（DNS/TCP 失敗）：', err.message);
+    } else {
+      console.error('其他錯誤：', err.message);
+    }
+    throw err;  // 再次 throw 讓上層決定如何處理
+
+  } finally {
+    console.log('載入完成（無論成敗）');
+    hideLoadingSpinner();
+  }
+}</pre>
+</div>
+
+<!-- ============================================================
+     Generator / yield（進階）
+============================================================ -->
+<h2>Generator / yield（進階）</h2>
+<div class="card">
+  <p class="comment">Generator 是 async/await 的底層機制，yield 讓函式可以「暫停」和「恢復」</p>
+  <button onclick="runGeneratorDemo()">▶ Generator 示範</button>
+  <div id="gen-log" class="log" style="margin-top:8px;"></div>
+  <pre style="margin-top:10px;">// Generator 函式（function* 有星號）
+function* counter() {
+  yield 1;   // 暫停，回傳 {value:1, done:false}
+  yield 2;   // 暫停，回傳 {value:2, done:false}
+  yield 3;   // 暫停，回傳 {value:3, done:false}
+  return 'done';  // 結束，回傳 {value:'done', done:true}
+}
+
+const gen = counter();
+gen.next();  // {value:1, done:false}
+gen.next();  // {value:2, done:false}
+gen.next();  // {value:3, done:false}
+gen.next();  // {value:'done', done:true}
+
+// async/await 的底層就是 Generator + Promise 的語法糖</pre>
+</div>
+
+<script>
+  function addLog(id, msg, cls) {
+    const log = document.getElementById(id);
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:2px 0; border-bottom:1px solid #2d3748;';
+    div.className = cls || 't0';
+    div.textContent = `[${new Date().toLocaleTimeString('zh-TW', {hour12:false})}] ${msg}`;
+    log.prepend(div);
+  }
+
+  function clearLog(id) { document.getElementById(id).innerHTML = ''; }
+
+  const delay = (ms, value = `resolved after ${ms}ms`) =>
+    new Promise(resolve => setTimeout(() => resolve(value), ms));
+
+  const delayReject = (ms, msg) =>
+    new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms));
+
+  // ==========================================
+  // 執行順序示範
+  // ==========================================
+  async function runOrderDemo() {
+    clearLog('order-log');
+    addLog('order-log', '1. 同步程式碼開始', 't1');
+
+    async function inner() {
+      addLog('order-log', '2. async function 開始執行', 't2');
+      const result = await delay(800, '非同步結果');
+      addLog('order-log', `4. await 結束：${result}`, 't2');
+      return result;
+    }
+
+    inner();
+    addLog('order-log', '3. await 讓出主執行緒，同步程式碼繼續', 't3');
+  }
+
+  // ==========================================
+  // 循序 vs 並行
+  // ==========================================
+  async function runSequential() {
+    clearLog('parallel-log');
+    document.getElementById('parallel-timeline').innerHTML = '';
+    addLog('parallel-log', '循序執行開始...', 't1');
+    const t0 = Date.now();
+
+    addLog('parallel-log', '→ 開始 Task A（1s）', 't1');
+    await delay(1000, 'A');
+    addLog('parallel-log', '← Task A 完成', 't2');
+
+    addLog('parallel-log', '→ 開始 Task B（800ms）', 't1');
+    await delay(800, 'B');
+    addLog('parallel-log', '← Task B 完成', 't2');
+
+    addLog('parallel-log', '→ 開始 Task C（600ms）', 't1');
+    await delay(600, 'C');
+    addLog('parallel-log', '← Task C 完成', 't2');
+
+    const total = Date.now() - t0;
+    addLog('parallel-log', `✅ 全部完成，共 ${total}ms（1000+800+600=${1000+800+600}ms）`, 't-ok');
+    renderTimeline('sequential', total);
+  }
+
+  async function runParallel() {
+    clearLog('parallel-log');
+    document.getElementById('parallel-timeline').innerHTML = '';
+    addLog('parallel-log', 'Promise.all 並行開始...', 't4');
+    const t0 = Date.now();
+
+    addLog('parallel-log', '→ 同時啟動 Task A(1s) + B(800ms) + C(600ms)', 't4');
+    const [a, b, c] = await Promise.all([
+      delay(1000, 'A'),
+      delay(800,  'B'),
+      delay(600,  'C'),
+    ]);
+
+    const total = Date.now() - t0;
+    addLog('parallel-log', `← 全部完成：${a}, ${b}, ${c}`, 't2');
+    addLog('parallel-log', `✅ 共 ${total}ms（約等於最慢的 1000ms）`, 't-ok');
+    renderTimeline('parallel', total);
+  }
+
+  function renderTimeline(mode, total) {
+    const scale = 300 / Math.max(total, 1);
+    const tasks = mode === 'sequential'
+      ? [
+          { label:'Task A', start:0,    dur:1000, color:'#1a365d', bc:'var(--accent)' },
+          { label:'Task B', start:1000, dur:800,  color:'#1a4731', bc:'var(--green)' },
+          { label:'Task C', start:1800, dur:600,  color:'#2d1b69', bc:'var(--purple)' },
+        ]
+      : [
+          { label:'Task A', start:0, dur:1000, color:'#1a365d', bc:'var(--accent)' },
+          { label:'Task B', start:0, dur:800,  color:'#1a4731', bc:'var(--green)' },
+          { label:'Task C', start:0, dur:600,  color:'#2d1b69', bc:'var(--purple)' },
+        ];
+
+    const tl = document.getElementById('parallel-timeline');
+    tl.innerHTML = `<div class="comment" style="margin-bottom:4px;">時間軸（${total}ms）：</div>`;
+    const container = document.createElement('div');
+    container.className = 'timeline';
+    tasks.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'tl-row';
+      row.innerHTML = `
+        <span class="tl-label">${t.label}</span>
+        <div style="flex:1; position:relative; height:18px;">
+          <div class="tl-bar" style="
+            position:absolute;
+            left:${t.start * scale}px;
+            width:${t.dur * scale}px;
+            background:${t.color};
+            border:1px solid ${t.bc};
+            color:${t.bc};
+          ">${t.dur}ms</div>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+    tl.appendChild(container);
+  }
+
+  // ==========================================
+  // Promise 靜態方法
+  // ==========================================
+  const makePromises = () => [
+    delay(500, 'API-A 成功'),
+    delay(300, 'API-B 成功'),
+    delayReject(200, 'API-C 失敗'),
+  ];
+
+  async function runPromiseAll() {
+    clearLog('promise-log');
+    addLog('promise-log', 'Promise.all（任一失敗就 reject）', 't1');
+    try {
+      const results = await Promise.all(makePromises());
+      addLog('promise-log', `✅ 全部成功：${results}`, 't-ok');
+    } catch (e) {
+      addLog('promise-log', `❌ 有人失敗，立刻 reject：${e.message}`, 't-err');
+    }
+  }
+
+  async function runPromiseAllSettled() {
+    clearLog('promise-log');
+    addLog('promise-log', 'Promise.allSettled（全部完成才回傳，不管成敗）', 't4');
+    const results = await Promise.allSettled(makePromises());
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') {
+        addLog('promise-log', `[${i}] ✅ fulfilled：${r.value}`, 't2');
+      } else {
+        addLog('promise-log', `[${i}] ❌ rejected：${r.reason.message}`, 't-err');
+      }
+    });
+  }
+
+  async function runPromiseRace() {
+    clearLog('promise-log');
+    addLog('promise-log', 'Promise.race（第一個完成就回傳，不管成敗）', 't3');
+    try {
+      const result = await Promise.race(makePromises());
+      addLog('promise-log', `✅ 最快的：${result}`, 't-ok');
+    } catch (e) {
+      addLog('promise-log', `❌ 最快的失敗了：${e.message}`, 't-err');
+    }
+  }
+
+  async function runPromiseAny() {
+    clearLog('promise-log');
+    addLog('promise-log', 'Promise.any（第一個成功就回傳）', 't4');
+    try {
+      const result = await Promise.any(makePromises());
+      addLog('promise-log', `✅ 最快成功的：${result}`, 't-ok');
+    } catch (e) {
+      addLog('promise-log', `❌ 全部失敗：${e.message}`, 't-err');
+    }
+  }
+
+  // ==========================================
+  // 錯誤處理
+  // ==========================================
+  async function runErrorDemo(scenario) {
+    clearLog('error-log');
+    addLog('error-log', `場景：${scenario}`, 't0');
+
+    try {
+      let response, data;
+
+      switch (scenario) {
+        case 'success':
+          addLog('error-log', '→ fetch 成功', 't1');
+          data = await delay(400, { id: 1, name: 'Alice' });
+          addLog('error-log', `← 資料：${JSON.stringify(data)}`, 't-ok');
+          break;
+
+        case 'network':
+          addLog('error-log', '→ 模擬網路錯誤（DNS / TCP 失敗）', 't1');
+          throw new TypeError('Failed to fetch（模擬）');
+
+        case 'http':
+          addLog('error-log', '→ fetch 成功但 status 是 404', 't1');
+          await delay(300);
+          const fakeStatus = 404;
+          if (fakeStatus >= 400) {
+            throw new Error(`HTTP Error: ${fakeStatus} Not Found`);
+          }
+          break;
+
+        case 'json':
+          addLog('error-log', '→ Response 回傳了非 JSON 格式', 't1');
+          await delay(300);
+          JSON.parse('not valid json {{{{');
+          break;
+      }
+
+    } catch (err) {
+      if (err instanceof TypeError) {
+        addLog('error-log', `❌ 網路錯誤（L4/L3）：${err.message}`, 't-err');
+      } else if (err instanceof SyntaxError) {
+        addLog('error-log', `❌ JSON 解析失敗（L6）：${err.message}`, 't-err');
+      } else {
+        addLog('error-log', `❌ 其他錯誤：${err.message}`, 't-err');
+      }
+    } finally {
+      addLog('error-log', '→ finally 一定執行（隱藏 loading spinner）', 't3');
+    }
+  }
+
+  // ==========================================
+  // Generator
+  // ==========================================
+  function* counterGen() {
+    yield 1;
+    yield 2;
+    yield 3;
+    return 'done';
+  }
+
+  function runGeneratorDemo() {
+    clearLog('gen-log');
+    const gen = counterGen();
+    let result;
+    let step = 0;
+    const interval = setInterval(() => {
+      result = gen.next();
+      addLog('gen-log',
+        `gen.next() #${++step} → {value: ${JSON.stringify(result.value)}, done: ${result.done}}`,
+        result.done ? 't3' : 't2');
+      if (result.done) {
+        clearInterval(interval);
+        addLog('gen-log', 'Generator 結束（done: true）', 't4');
+      }
+    }, 500);
+  }
+</script>
+
+</body>
+</html>

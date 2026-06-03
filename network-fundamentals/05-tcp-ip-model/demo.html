@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<!--
+  ==========================================
+  網路概念：TCP/IP 模型與傳輸協定
+  OSI 層：L4 傳輸層（Transport Layer）
+  說明：TCP 三向握手是每次瀏覽網頁前的「握手儀式」，
+        HTTP/2 和 HTTP/3 都是為了繞過 TCP 的限制而生。
+        這個 HTML 文件本身就是透過 TCP（或 QUIC）傳輸到你的瀏覽器的。
+  ==========================================
+-->
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TCP/IP 模型 Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: monospace; max-width: 900px; margin: 0 auto; padding: 20px; background: #0f1117; color: #e2e8f0; }
+    h1 { color: #63b3ed; }
+    h2 { color: #68d391; border-bottom: 1px solid #2d3748; padding-bottom: 8px; }
+    .card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .comment { color: #718096; font-size: 0.85em; border-left: 3px solid #4a5568; padding-left: 12px; margin: 8px 0; }
+    button { background: #3182ce; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin: 4px; }
+    button:hover { background: #2b6cb0; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2d3748; }
+    th { color: #a0aec0; font-weight: normal; }
+    .tcp-color { color: #68d391; }
+    .udp-color { color: #f6ad55; }
+    .quic-color { color: #9f7aea; }
+
+    /* 握手動畫 */
+    .handshake-container { display: grid; grid-template-columns: 1fr 60px 1fr; gap: 8px; align-items: start; }
+    .hc-client { text-align: right; }
+    .hc-server { text-align: left; }
+    .hc-arrow { text-align: center; display: flex; align-items: center; justify-content: center; }
+    .msg { padding: 8px 12px; border-radius: 6px; margin: 4px 0; display: inline-block; font-size: 0.9em; opacity: 0; transition: opacity 0.4s; }
+    .msg.visible { opacity: 1; }
+    .syn    { background: #276749; color: #9ae6b4; }
+    .synack { background: #2c5282; color: #90cdf4; }
+    .ack    { background: #276749; color: #9ae6b4; }
+    .data   { background: #2d1b69; color: #e9d8fd; }
+
+    /* HTTP 版本比較 */
+    .version-card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 12px; }
+    .conn-line { height: 4px; border-radius: 2px; margin: 3px 0; }
+    .req-block { height: 20px; border-radius: 3px; display: flex; align-items: center; padding: 0 6px; font-size: 0.7em; margin: 2px 0; }
+  </style>
+</head>
+<body>
+
+<h1>TCP/IP 模型 Demo</h1>
+
+<!--
+  網路概念：TCP vs UDP
+  OSI 層：L4 傳輸層
+  說明：TCP 和 UDP 是 L4 傳輸層的兩個主要協定，
+        代表了「可靠性」和「速度」的取捨。
+        瀏覽器和伺服器之間的 HTTP 對話預設使用 TCP。
+-->
+<h2>TCP vs UDP 對比</h2>
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div style="border:2px solid #276749; border-radius:8px; padding:12px;">
+      <div class="tcp-color" style="font-size:1.2em; font-weight:bold; margin-bottom:8px;">📦 TCP</div>
+      <div style="color:#a0aec0; font-size:0.9em;">傳輸控制協定</div>
+      <ul style="margin:8px 0; padding-left:20px; font-size:0.9em; color:#e2e8f0;">
+        <li>保證送到（重傳機制）</li>
+        <li>保證順序</li>
+        <li>需要握手（建立連線）</li>
+        <li>流量控制</li>
+      </ul>
+      <div class="comment">HTTP, HTTPS, Email, FTP</div>
+    </div>
+    <div style="border:2px solid #744210; border-radius:8px; padding:12px;">
+      <div class="udp-color" style="font-size:1.2em; font-weight:bold; margin-bottom:8px;">🚀 UDP</div>
+      <div style="color:#a0aec0; font-size:0.9em;">使用者資料包協定</div>
+      <ul style="margin:8px 0; padding-left:20px; font-size:0.9em; color:#e2e8f0;">
+        <li>發了就不管（不重傳）</li>
+        <li>不保證順序</li>
+        <li>無連線（快速）</li>
+        <li>低延遲</li>
+      </ul>
+      <div class="comment">DNS 查詢, 影片串流, 遊戲, HTTP/3</div>
+    </div>
+  </div>
+  <div class="comment" style="margin-top:12px;">
+    比喻：TCP = 掛號信（有確認收到）；UDP = 平信（發出去就算了）<br>
+    HTTP/3 用 UDP 但在上面自己實作了可靠性（QUIC 協定）
+  </div>
+</div>
+
+<!--
+  網路概念：TCP 三向握手
+  OSI 層：L4 傳輸層
+  說明：在任何 HTTP 請求發出之前，
+        Client 和 Server 必須完成這個握手儀式才能開始通訊。
+        這也是為什麼每次新連線會有初始延遲（Initial Connection）。
+        在 Chrome DevTools 的 Network → Timing 可以看到這段時間。
+-->
+<h2>TCP 三向握手動畫</h2>
+<div class="card">
+  <button onclick="startHandshake()">▶ 開始握手</button>
+  <div style="margin-top:16px; display:flex; gap:12px; justify-content:space-around; font-weight:bold; color:#a0aec0;">
+    <div>💻 Client（瀏覽器）</div>
+    <div></div>
+    <div>🖥 Server（Google）</div>
+  </div>
+  <div id="handshake-steps" style="margin-top:8px;"></div>
+</div>
+
+<!--
+  網路概念：HTTP 版本演進
+  OSI 層：L4 傳輸層（TCP → QUIC/UDP）
+  說明：HTTP 版本的演進核心是解決 TCP 的限制。
+        HTTP/1.1 每個請求需要獨立連線或排隊；
+        HTTP/2 在一個 TCP 連線裡多工；
+        HTTP/3 直接換掉 TCP 用 UDP 上的 QUIC。
+-->
+<h2>HTTP 版本演進</h2>
+<div class="card">
+  <table>
+    <tr><th>版本</th><th>傳輸層</th><th>多路復用</th><th>握手時間</th><th>換網路</th><th>前端影響</th></tr>
+    <tr>
+      <td><strong>HTTP/1.1</strong></td>
+      <td class="tcp-color">TCP</td>
+      <td>❌ 需排隊</td>
+      <td>多次往返</td>
+      <td>斷線重連</td>
+      <td>需要 CSS Sprite、合併檔案</td>
+    </tr>
+    <tr>
+      <td><strong>HTTP/2</strong></td>
+      <td class="tcp-color">TCP</td>
+      <td>✅ 同一連線</td>
+      <td>普通</td>
+      <td>斷線重連</td>
+      <td>多個小請求不再是問題</td>
+    </tr>
+    <tr>
+      <td><strong>HTTP/3</strong></td>
+      <td class="quic-color">UDP (QUIC)</td>
+      <td>✅ 獨立流</td>
+      <td>0-RTT（瞬間）</td>
+      <td>✅ 無縫切換</td>
+      <td>Wi-Fi↔4G 不斷線</td>
+    </tr>
+  </table>
+</div>
+
+<!--
+  網路概念：HTTP/1.1 vs HTTP/2 連線模型
+  OSI 層：L4 傳輸層（TCP 連線數）
+  說明：HTTP/1.1 同一網域最多 6 條 TCP 連線，
+        每條連線上的請求要排隊（隊頭阻塞）。
+        HTTP/2 所有請求共用一條 TCP 連線，並行傳輸。
+-->
+<h2>HTTP/1.1 vs HTTP/2 連線模型</h2>
+<div class="card">
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div class="version-card">
+      <div style="color:#fc8181; font-weight:bold; margin-bottom:8px;">HTTP/1.1（隊頭阻塞）</div>
+      <div style="color:#a0aec0; font-size:0.8em; margin-bottom:8px;">同域 6 條 TCP 連線，每條排隊</div>
+      <div id="http1-vis"></div>
+    </div>
+    <div class="version-card">
+      <div style="color:#68d391; font-weight:bold; margin-bottom:8px;">HTTP/2（多路復用）</div>
+      <div style="color:#a0aec0; font-size:0.8em; margin-bottom:8px;">一條 TCP 連線，並行傳輸</div>
+      <div id="http2-vis"></div>
+    </div>
+  </div>
+  <button onclick="visualizeConnections()" style="margin-top:12px;">▶ 展示差異</button>
+</div>
+
+<!--
+  網路概念：WebSocket
+  OSI 層：L4 傳輸層（TCP 全雙工）+ L7 應用層
+  說明：WebSocket 在 HTTP 握手後「升級」為持久全雙工連線，
+        Server 可以主動推送資料給 Client，
+        不需要 Client 先發起請求。
+        即時聊天、通知、協作工具都靠 WebSocket。
+-->
+<h2>WebSocket：從 HTTP 升級到全雙工</h2>
+<div class="card">
+  <button onclick="simulateWebSocket()">▶ 模擬 WebSocket 通訊</button>
+  <div id="ws-log" style="margin-top:12px;"></div>
+</div>
+
+<script>
+  // ==========================================
+  // TCP 三向握手動畫（L4 傳輸層）
+  // ==========================================
+  function startHandshake() {
+    const container = document.getElementById('handshake-steps');
+    container.innerHTML = '';
+
+    const steps = [
+      { dir: 'client-to-server', cls: 'syn', label: 'SYN', detail: '「嘿 Google，我想開始通訊！（序號 X=1000）」' },
+      { dir: 'server-to-client', cls: 'synack', label: 'SYN-ACK', detail: '「好的！我準備好了！（序號 Y=5000，確認 X+1=1001）」' },
+      { dir: 'client-to-server', cls: 'ack', label: 'ACK', detail: '「收到！連線建立完成，準備傳資料。（確認 Y+1=5001）」' },
+      { dir: 'client-to-server', cls: 'data', label: 'HTTP GET', detail: '「GET /index.html HTTP/1.1\nHost: google.com」' },
+      { dir: 'server-to-client', cls: 'data', label: 'HTTP Response', detail: '「200 OK\nContent-Type: text/html\n\n<html>...</html>」' },
+    ];
+
+    steps.forEach((s, i) => {
+      setTimeout(() => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; margin:4px 0;';
+
+        const isC2S = s.dir === 'client-to-server';
+        row.innerHTML = `
+          <div style="text-align:right;">
+            ${isC2S ? `<span class="msg ${s.cls} visible" title="${s.detail}">${s.label}</span>` : ''}
+          </div>
+          <div style="text-align:center; color:#4a5568; font-size:1.3em;">${isC2S ? '→' : '←'}</div>
+          <div style="text-align:left;">
+            ${!isC2S ? `<span class="msg ${s.cls} visible" title="${s.detail}">${s.label}</span>` : ''}
+          </div>
+        `;
+        container.appendChild(row);
+
+        // 說明文字
+        const desc = document.createElement('div');
+        desc.style.cssText = 'font-size:0.8em; color:#718096; margin:2px 0 6px; padding-left:' + (isC2S ? '0' : '50%') + ';';
+        desc.textContent = s.detail;
+        container.appendChild(desc);
+      }, i * 800);
+    });
+  }
+
+  // ==========================================
+  // HTTP/1.1 vs HTTP/2 連線可視化（L4 TCP）
+  // ==========================================
+  function visualizeConnections() {
+    const resources = ['HTML', 'CSS', 'JS1', 'JS2', 'IMG1', 'IMG2', 'IMG3', 'FONT'];
+    const colors = ['#9f7aea','#63b3ed','#68d391','#f6ad55','#fc8181','#76e4f7','#fbd38d','#fed7d7'];
+
+    // HTTP/1.1 視覺化
+    const h1Container = document.getElementById('http1-vis');
+    h1Container.innerHTML = '';
+    // 最多 6 條連線，資源排隊
+    const connections = [[], [], [], [], [], []];
+    resources.forEach((r, i) => connections[i % 6].push({ name: r, color: colors[i] }));
+    connections.forEach((conn, ci) => {
+      if (conn.length === 0) return;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; gap:3px; margin:3px 0; align-items:center;';
+      row.innerHTML = `<div style="width:40px; font-size:0.7em; color:#a0aec0;">TCP ${ci+1}</div>`;
+      conn.forEach(r => {
+        const block = document.createElement('div');
+        block.className = 'req-block';
+        block.style.cssText = `background:${r.color}22; border:1px solid ${r.color}; color:${r.color}; width:48px; flex-shrink:0;`;
+        block.textContent = r.name;
+        row.appendChild(block);
+      });
+      h1Container.appendChild(row);
+    });
+
+    // HTTP/2 視覺化
+    const h2Container = document.getElementById('http2-vis');
+    h2Container.innerHTML = '';
+    const connDiv = document.createElement('div');
+    connDiv.innerHTML = '<div style="font-size:0.7em; color:#a0aec0; margin-bottom:4px;">1 條 TCP 連線（多路復用）</div>';
+    const streamRow = document.createElement('div');
+    streamRow.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
+    resources.forEach((r, i) => {
+      const stream = document.createElement('div');
+      stream.className = 'req-block';
+      stream.style.cssText = `background:${colors[i]}22; border:1px solid ${colors[i]}; color:${colors[i]}; width:100%;`;
+      stream.textContent = `Stream ${i+1}: ${r}`;
+      streamRow.appendChild(stream);
+    });
+    connDiv.appendChild(streamRow);
+    h2Container.appendChild(connDiv);
+  }
+
+  // ==========================================
+  // WebSocket 模擬（L4 TCP 全雙工 + L7）
+  // ==========================================
+  function simulateWebSocket() {
+    const log = document.getElementById('ws-log');
+    log.innerHTML = '';
+
+    const events = [
+      { from: 'client', msg: 'HTTP GET /chat HTTP/1.1\nUpgrade: websocket\nConnection: Upgrade', color: '#63b3ed', label: '🔗 HTTP 握手升級' },
+      { from: 'server', msg: '101 Switching Protocols\nUpgrade: websocket', color: '#68d391', label: '✅ 升級成功，WebSocket 建立' },
+      { from: 'client', msg: '{"type":"join","user":"Alice"}', color: '#63b3ed', label: '→ Client 發送訊息' },
+      { from: 'server', msg: '{"type":"message","user":"Bob","text":"Hi Alice!"}', color: '#68d391', label: '← Server 主動推送' },
+      { from: 'server', msg: '{"type":"notification","count":3}', color: '#68d391', label: '← Server 主動推送通知' },
+      { from: 'client', msg: '{"type":"leave","user":"Alice"}', color: '#63b3ed', label: '→ Client 離開' },
+    ];
+
+    events.forEach((e, i) => {
+      setTimeout(() => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.cssText = `border-left:4px solid ${e.color}; margin:4px 0; padding:10px 14px;`;
+        div.innerHTML = `
+          <div style="color:${e.color}; font-weight:bold; font-size:0.85em;">${e.label}</div>
+          <pre style="margin:4px 0 0; font-size:0.8em; color:#a0aec0;">${e.msg}</pre>
+        `;
+        log.appendChild(div);
+      }, i * 700);
+    });
+
+    setTimeout(() => {
+      const note = document.createElement('div');
+      note.className = 'comment';
+      note.innerHTML = '💡 與 HTTP 的差異：WebSocket 建立後，Server 可以<strong>主動</strong>推送訊息，不需要等 Client 發請求。這是即時聊天、股票行情、協作工具的關鍵。';
+      log.appendChild(note);
+    }, events.length * 700 + 300);
+  }
+</script>
+
+</body>
+</html>
